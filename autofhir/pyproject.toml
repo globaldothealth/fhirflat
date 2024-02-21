@@ -1,0 +1,41 @@
+[build-system]
+  requires = ['setuptools>=40.8.0']
+  build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+  packages = ["autofhir"]
+
+  [tool.setuptools.package-data]
+    autoparser = ["config/*.toml"]
+
+[project]
+  name = "autofhir"
+  version = "0.1"
+  description = """autofhir generates ISARIC parsers as CSV files which
+  are used to transform files from the source into FHIRflat format.
+"""
+  authors = [
+    { name = "Abhishek Dasgupta", email = "abhishek.dasgupta@dtc.ox.ac.uk" },
+    { name = "Philippa Liggins", email = "philippa.liggins@dtc.ox.ac.uk" },
+  ]
+  license = { file = "LICENSE" }
+  requires-python = ">=3.10"
+  readme = "README.md"
+  classifiers = ["License :: OSI Approved :: MIT License"]
+  dependencies = [
+    "tomli>=2.0.0",
+    "numpy>=1.0.0",
+    "pandas>=1.5.0",
+    "scikit-learn>=1.0.0",
+    "streamlit>=1.31.0",
+    "openai>=1.12.0",
+  ]
+
+  [project.optional-dependencies]
+    test = ["pytest", "pytest-cov", "syrupy==4.*"]
+
+  [project.urls]
+    Home = "https://github.com/globaldothealth/isaric-pipeline"
+
+  [project.scripts]
+    autofhir-csv = "autofhir.csv_mapping:main"

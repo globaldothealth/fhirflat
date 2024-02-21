@@ -1,0 +1,67 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "title": "FHIRflat Condition",
+    "required": [
+        "clinicalStatus",
+        "subject"
+    ],
+    "properties": {
+        "bodySite": {
+            "title": "The anatomical location where this condition is located.",
+            "type": "array",
+            "items": {
+                "type": "CodeableConcept"
+            }
+        },
+        "category": {
+            "title": "A category assigned to the condition.",
+            "element_property": true,
+            "type": "array",
+            "items": {
+                "type": "CodeableConcept"
+            }
+        },
+        "code": {
+            "title": "Name of the condition, problem or diagnosis",
+            "element_property": true,
+            "type": "CodeableConcept"
+        },
+        "encounter": {
+            "title": "The Encounter during which this Condition was created",
+            "description": "The Encounter during which this Condition was created or to which the creation of this record is tightly associated.",
+            "element_property": true,
+            "enum_reference_types": [
+                "Encounter"
+            ],
+            "type": "Reference"
+        },
+        "recordedDate": {
+            "title": "Date condition was first recorded in the system",
+            "element_property": true,
+            "type": "string",
+            "format": "date-time"
+        },
+        "severity": {
+            "title": "Severity of the condition",
+            "element_property": true,
+            "type": "CodeableConcept"
+        },
+        "stage": {
+            "title": "Stage/grade, of the condition",
+            "element_property": true,
+            "type": "array",
+            "items": {
+                "type": "ConditionStage"
+            }
+        },
+        "subject": {
+            "title": "The ID, or participation number, of the person who has the condition",
+            "element_property": true,
+            "enum_reference_types": [
+                "Patient",
+                "Group"
+            ],
+            "type": "Reference"
+        }
+    }
+}

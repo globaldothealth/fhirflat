@@ -1,0 +1,73 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "title": "FHIRflat Patient",
+    "required": [
+        "id",
+        "gender"
+    ],
+    "properties": {
+        "id": {
+            "title": "Identification number, ID or PIN of the individual",
+            "type": "string"
+        },
+        "gender": {
+            "title": "The sex or gender of the individual",
+            "enum": [
+                "male",
+                "female",
+                "other",
+                "unknown"
+            ],
+            "pattern": "^[^\\\\s]+(\\\\s[^\\\\s]+)*$",
+            "type": "string"
+        },
+        "birthDate": {
+            "title": "The date of birth for the individual",
+            "type": "string",
+            "format": "date"
+        },
+        "maritalStatus": {
+            "title": "Marital status of a patient",
+            "enum": [
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|A",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|D",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|I",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|L",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|M",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|C",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|P",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|T",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|U",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|S",
+                "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus|W",
+                "http://terminology.hl7.org/CodeSystem/v3-NullFlavor"
+            ]
+        },
+        "multipleBirthBoolean": {
+            "title": "Whether patient is part of a multiple birth",
+            "type": "boolean"
+        },
+        "multipleBirthInteger": {
+            "title": "Whether patient is part of a multiple birth",
+            "type": "integer",
+            "minimum": 1
+        },
+        "generalPractitioner": {
+            "title": "Patient's nominated primary care provider",
+            "type": "string"
+        },
+        "managingOrganization": {
+            "title": "Organization that is the custodian of the patient record",
+            "type": "string"
+        },
+        "deceasedBoolean": {
+            "title": "Indicates if the individual is deceased or not",
+            "type": "boolean"
+        },
+        "deceasedDateTime": {
+            "title": "Indicates if the individual is deceased or not",
+            "type": "string",
+            "format": "date-time"
+        }
+    }
+}

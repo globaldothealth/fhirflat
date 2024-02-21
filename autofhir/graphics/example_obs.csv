@@ -1,0 +1,4 @@
+﻿category,code,effectiveDateTime,value,value_unit,bodySite
+Vital Signs,VS.VSTEST,VS.VSDTC,VS.VSORRES,VS.VSORRESU,VS.VSLOC
+Social History,SC.SCTEST,SC.SCDTC,SC.SCORRES,,
+Laboratory,MB.MBTESTCD,MB.MBDTC,MB.MBSTRESC,,

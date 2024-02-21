@@ -1,0 +1,2 @@
+﻿id,gender,birthDate,deceasedBoolean,deceasedDateTime,maritalStatus,multipleBirthBoolean,multipleBirthInteger,generalPractitioner,managingOrganization
+DM.USUBJID,DM.SEX,DM.BRTHDTC,DS.DSDECOD[DEATH]=True,DS.DSSTDTC,,,,,
