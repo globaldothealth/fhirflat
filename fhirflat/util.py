@@ -1,10 +1,12 @@
 # Utility functions for FHIRflat
+import datetime
 import importlib
 import re
 from collections.abc import KeysView
 from itertools import groupby
 
 import fhir.resources
+import numpy as np
 
 import fhirflat
 from fhirflat.resources import extensions
@@ -70,3 +72,62 @@ def get_local_extension_type(t: str):
 
 def get_local_resource(t: str):
     return getattr(fhirflat, t)
+
+
+def format_flat(flat_df):
+    """
+    Performs formatting ondates/lists in FHIRflat resources.
+    """
+
+    for date_cols in [
+        x
+        for x in flat_df.columns
+        if ("date" in x.lower() or "period" in x.lower() or "time" in x.lower())
+    ]:
+        # replace nan with None
+        flat_df[date_cols] = flat_df[date_cols].replace(np.nan, None)
+
+        # convert datetime objects to ISO strings
+        # (stops unwanted parquet conversions)
+        # but skips over extensions that have floats/strings rather than dates
+        flat_df[date_cols] = flat_df[date_cols].apply(
+            lambda x: (
+                x.isoformat()
+                if isinstance(x, datetime.datetime) or isinstance(x, datetime.date)
+                else x
+            )
+        )
+
+    for coding_column in [
+        x
+        for x in flat_df.columns
+        if (x.lower().endswith(".code") or x.lower().endswith(".text"))
+        and "Quantity" not in x
+    ]:
+        flat_df[coding_column] = flat_df[coding_column].apply(
+            lambda x: [x] if isinstance(x, str) else x
+        )
+
+    return flat_df
+
+
+def condense_codes(row, code_col):
+    raw_codes = row[(code_col + ".code")]
+    if isinstance(raw_codes, (str, float)) and raw_codes == raw_codes:
+        formatted_code = (
+            raw_codes if isinstance(raw_codes, str) else str(int(raw_codes))
+        )
+        codes = row[code_col + ".system"] + "|" + formatted_code
+    elif np.isnan(raw_codes) or raw_codes is None:
+        codes = None
+    else:
+        formatted_codes = [
+            c if (isinstance(c, str) or c is None) else str(int(c)) for c in raw_codes
+        ]
+        codes = [
+            s + "|" + c
+            for s, c in zip(row[code_col + ".system"], formatted_codes, strict=True)
+        ]
+
+    row[code_col + ".code"] = codes
+    return row

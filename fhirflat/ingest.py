@@ -518,6 +518,16 @@ def convert_data_to_flat(
             os.path.join(folder_name, resource.__name__.lower()),
         )
 
+        # flat_nonvalidated = resource.ingest_to_flat(
+        #     df,
+        #     # os.path.join(folder_name, resource.__name__.lower()),
+        # )
+
+        # valid_flat, errors = resource.validate_flat(flat_nonvalidated)
+        # valid_flat.to_parquet(
+        #     f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+        # )
+
         end_time = timeit.default_timer()
         total_time = end_time - start_time
         print(
