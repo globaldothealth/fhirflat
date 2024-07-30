@@ -216,6 +216,7 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
     Combines columns containing flattened FHIR concepts back into
     JSON-like structures.
     """
+
     groups = group_keys(data.keys())
     group_classes = {}
 

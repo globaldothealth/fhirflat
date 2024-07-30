@@ -118,12 +118,12 @@ def test_explode_and_flatten_no_multiples(data_lists, expected):
         ),
     ],
 )
-def test_expandCoding(data, expected):
+def test_condenseCoding(data, expected):
     # Create a mock DataFrame
     df = pd.DataFrame(data)
 
     # Call the function
-    result = f2f.expandCoding(df, "code.coding")
+    result = f2f.condenseCoding(df, "code.coding")
 
     # Check the result
     expected = pd.DataFrame(expected)

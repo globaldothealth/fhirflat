@@ -127,7 +127,7 @@ def condenseCoding(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     If a "text" field has already been provided, this overrides the display.
     """
 
-    def expand(
+    def condense(
         row: pd.Series, column_name: str, text_present: bool = False
     ) -> pd.Series:
         codes = row[column_name]
@@ -148,7 +148,7 @@ def condenseCoding(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     if column_name.removesuffix(".coding") + ".text" in df.columns:
         text_present = True
 
-    df = df.apply(lambda x: expand(x, column_name, text_present), axis=1)
+    df = df.apply(lambda x: condense(x, column_name, text_present), axis=1)
 
     if not text_present:
         df.insert(
