@@ -1,6 +1,6 @@
 # Mapping file specification
 
-The mapping file enables **transformation of raw data** into FHIRFlat format.
+The mapping file enables **transformation of raw data** into FHIRflat format.
 Mapping is usually done using a Google Sheet, though using a local file is also
 possible.
 
@@ -8,14 +8,14 @@ Qualifiers for requirement levels (MUST, SHOULD) are interpreted as in [RFC 2119
 
 Once a mapping file or a Google Sheet is prepared, the
 [`fhirflat.convert_data_to_flat()`](../fhirflat.rst) function can be used to
-transform the source data into a folder of FHIRFlat resources in parquet format.
+transform the source data into a folder of FHIRflat resources in parquet format.
 
-## Google Sheets
-
+```{note}
 The usual location for a mapping file is a Google Sheet, which has a URL like
 `https://docs.google.com/spreadsheets/d/{SHEET_URL}/edit`
+```
 
-### Metadata
+## Metadata
 
 The first sheet of the Google Sheets document MUST be a table with the following
 column headers: `Resources` [cell A1], `Sheet ID` [cell B1] and `Resource Type`
@@ -32,15 +32,15 @@ The last column, `Resource Type` indicates whether the mapping type and MUST be
 one of these types:
 
 - `one-to-one`: Information in the mapping sheet pertains to one record of the
-  corresponding FHIRFlat resource. One row in the raw data generates a single
+  corresponding FHIRflat resource. One row in the raw data generates a single
   resource.
 - `one-to-many`: Information in the mapping sheet pertains to multiple records
-  of the corresponding FHIRFlat resource. One row in the raw data generates
+  of the corresponding FHIRflat resource. One row in the raw data generates
   multiple resources.
 
-### FHIRFlat resource mapping sheet
+## FHIRflat resource mapping sheet
 
-Each resource mapping sheet MUST be named the same name as the corresponding FHIRFlat resource.
+Each resource mapping sheet MUST be named the same name as the corresponding FHIRflat resource.
 
 These columns are mandatory:
 - `raw_variable`: Name of column in raw data to be transformed
@@ -65,11 +65,11 @@ keep the corresponding `raw_variable` entry blank, example:
 |              | 2, Woman     | 446141000124107 | http://snomed.info/sct |
 |              | 99, Unknown  |                 |                        |
 
-#### Column headers
+### Column headers
 
-The rest of the column headers MUST correspond to assignments to FHIRFlat
+The rest of the column headers MUST correspond to assignments to FHIRflat
 variables. Nested data in FHIR are represented as flattened versions in
-FHIRFlat, with the parent and child fields joined by a period (`.`):
+FHIRflat, with the parent and child fields joined by a period (`.`):
 
 ```json
 "gender": {
@@ -88,7 +88,7 @@ would flatten to
 [ISARIC specific FHIR extensions](isaric-fhir-extensions.rst) MUST be specified
 with an `extension.` prefix as required in the FHIR standard.
 
-#### Column values
+### Column values
 
 Values in a column (other than `raw_response` and `raw_variable`) are constants
 (such as the preceding example) or refer to column names in the raw data. Column
@@ -99,7 +99,7 @@ referred to by `raw_variable`.
 
 Examples:
 - For a patient ID field, `raw_variable = subjid` and `id = Patient/+<FIELD>`
-  which assigns the value of the subject ID to the `id` column in FHIRFlat with
+  which assigns the value of the subject ID to the `id` column in FHIRflat with
   a namespace prefix.
 - To combine date of admission and time of admission, `raw_variable =
   dates_admdate`, and `actualPeriod.start = <FIELD>+<dates_admtime>`.
@@ -109,7 +109,7 @@ Examples:
 Conditional assignments are made using the **`if not`** statement. A value of
 `<A> if not <B>` selects field A if B is blank.
 
-#### Creating list assignments
+### Creating list assignments
 
 FHIR resource entries can be lists, such as a set of codes. This is handled in
 the mapping specification by allowing multiple matches for a (`raw_variable`,

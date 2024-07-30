@@ -8,6 +8,7 @@ from fhirflat.ingest import (
     generate_metadata,
     write_metadata,
     checksum,
+    main,
 )
 from fhirflat.resources.encounter import Encounter
 from fhirflat.resources.observation import Observation
@@ -996,6 +997,48 @@ def test_convert_data_to_flat_local_mapping():
     )
 
     shutil.rmtree(output_folder)
+
+
+def test_convert_data_to_flat_local_mapping_zipped():
+    output_folder = "tests/ingestion_output"
+    mappings = {
+        Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
+    }
+    resource_types = {"Encounter": "one-to-one"}
+
+    convert_data_to_flat(
+        "tests/dummy_data/combined_dummy_data.csv",
+        folder_name=output_folder,
+        date_format="%Y-%m-%d",
+        timezone="Brazil/East",
+        mapping_files_types=(mappings, resource_types),
+        compress_format="zip",
+    )
+
+    assert os.path.exists("tests/ingestion_output.zip")
+
+    os.remove("tests/ingestion_output.zip")
+
+
+def test_main(capsys, monkeypatch):
+    # Simulate command line arguments
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ingest.py",
+            "tests/dummy_data/combined_dummy_data.csv",
+            "15nQwXBIKnXF9lRHbVVdfFxOMGfLqhOfxZ7GkjSu_Kcs",
+            "%Y-%m-%d",
+            "Brazil/East",
+        ],
+    )
+    with pytest.warns(UserWarning, match="No data found"):
+        main()
+    captured = capsys.readouterr()
+    assert "Encounter took" in captured.out
+    assert "Observation took" in captured.out
+
+    shutil.rmtree("fhirflat_output")
 
 
 def test_validate_fhirflat_single_resource_errors():

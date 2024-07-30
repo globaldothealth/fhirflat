@@ -2,6 +2,7 @@
 fhirflat is a library for transforming FHIR resources in NDJSON or native Python
 dictionaries to a flat structure that can be written to a Parquet file.
 """
+
 from .resources import (
     Condition,
     Encounter,

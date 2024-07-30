@@ -1,4 +1,4 @@
-# How to convert between FHIR and FHIRFlat
+# How to convert between FHIR and FHIRflat
 
 FHIR resources can be initialised using a data dictionary:
 ```python

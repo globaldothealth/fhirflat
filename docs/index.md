@@ -1,13 +1,19 @@
-# fhirflat -- flat file structure library for FHIR resources
+# FHIRflat -- flat file structure library for FHIR resources
 
-fhirflat is a library for transforming FHIR resources in NDJSON or native Python
+FHIRflat is a library for transforming FHIR resources in NDJSON or native Python
 dictionaries to a flat structure that can be written to a Parquet file.
 
-fhirflat is a **prototype library**, subject to **major revisions** that is used
+```{warning}
+FHIRflat is a **prototype library**, subject to **major revisions** that is used
 for the [ISARIC](https://isaric.org) 3.0 project and data pipelines. Portions of
 the code are specific to the ISARIC project, such as ISARIC specific FHIR
 extensions.
+```
 
+```{note}
+This library is used to transform source data into the FHIRflat format.
+To analyse data, there is a companion library: [polyflame](https://polyflame.readthedocs.io)
+```
 ## Motivation
 
 We are working on a reproducible analytical pipeline (RAP) that converts raw
@@ -26,17 +32,17 @@ Converting FHIR resources (approximately tables in a database) to a flat file fo
 
 ## Components
 
-FHIRFlat comprises of these components:
+FHIRflat comprises of these components:
 
 - ISARIC specific **FHIR resources** in the
   [`fhirflat.resources`](resources.rst) library, that include
   [ISARIC specific extensions](spec/isaric-fhir-extensions.rst).
 - **CONVERSION** modules `fhirflat.fhir2flat` and `fhirflat.flat2fhir` that
-  implement conversion to and from FHIRFlat to a nested FHIR resource. These do
+  implement conversion to and from FHIRflat to a nested FHIR resource. These do
   not need to be directly accessed, as they are exposed as `to_flat()` and
   `from_flat()` in [`FHIRFlatBase`](resources_base.rst) which all FHIR resources
   derive from.
-- **TRANSFORMATION** from raw data to FHIRFlat format using a mapping file or a
+- **TRANSFORMATION** from raw data to FHIRflat format using a mapping file or a
   mapping Google sheet that follows the [mapping
   specification](spec/mapping.md).
 
@@ -48,7 +54,7 @@ Schematic diagram:
                                                                    │    │            │
 ┌─────────┐      ┌─────────────┐     fhirflat.    ┌────────────┐   │    └────────────┘
 │  FHIR   │      │ ISARIC FHIR │     fhir2flat    │            │◀──┘
-│  fhir.  │─────▶│  fhirflat.  │◀────────────────▶│  FHIRFlat  │
+│  fhir.  │─────▶│  fhirflat.  │◀────────────────▶│  FHIRflat  │
 │resources│      │  resources  │     fhirflat.    │            │◀──┐    ┌────────────┐
 └─────────┘      └─────────────┘     flat2fhir    └────────────┘   │    │            │
                                                                    │    │  Mapping   │
@@ -68,36 +74,4 @@ If you are using `requirements.txt`, then add this to your file and rerun `pip
 install -r requirements.txt`:
 ```
 https://github.com/globaldothealth/fhirflat/main.tar.gz
-```
-
-
-```{toctree}
----
-caption: Howtos
-maxdepth: 1
-----
-
-howto/conversion-fhir
-howto/conversion-data
-```
-
-```{toctree}
----
-caption: Specifications
-maxdepth: 1
-----
-spec/fhirflat
-spec/mapping
-spec/isaric-fhir-extensions
-```
-
-```{toctree}
----
-caption: Module reference
-maxdepth: 1
----
-
-fhirflat
-resources_base
-resources
 ```

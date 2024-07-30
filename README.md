@@ -2,6 +2,7 @@
 
 [![](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![tests](https://github.com/globaldothealth/adtl/actions/workflows/tests.yml/badge.svg)](https://github.com/globaldothealth/fhirflat/actions/workflows/tests.yml)
+[![docs](https://readthedocs.org/projects/fhirflat/badge/)](https://fhirflat.readthedocs.io)
 [![codecov](https://codecov.io/gh/globaldothealth/fhirflat/graph/badge.svg?token=AINU8PNJE3)](https://codecov.io/gh/globaldothealth/fhirflat)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 

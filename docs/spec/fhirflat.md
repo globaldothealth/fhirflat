@@ -1,4 +1,4 @@
-# FHIRFlat specification
+# FHIRflat specification
 
 The FHIRflat structure closely follows that of FHIR, and simply flattens nested
 columns in a manner similar to `pd.json_normalize()`. Some fields are excluded

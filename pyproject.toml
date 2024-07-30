@@ -3,7 +3,7 @@ requires = ['setuptools>=40.8.0']
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools]
-packages = ["fhirflat"]
+packages = ["fhirflat", "fhirflat.resources"]
 
 [project]
 name = "fhirflat"
@@ -39,9 +39,7 @@ dev = [
   "pre-commit"
 ]
 docs = [
-  "sphinx>=7.2.2",
-  "myst-parser==2.0.*",
-  "sphinx-better-theme"
+  "jupyter-book"
 ]
 
 [project.urls]

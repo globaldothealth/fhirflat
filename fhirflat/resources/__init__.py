@@ -3,7 +3,7 @@ fhirflat.resources
 ==================
 
 The fhirflat.resources submodule contains FHIR resource classes that are
-equipped with the capability to read from and write to FHIRFlat files. These
+equipped with the capability to read from and write to FHIRflat files. These
 classes are derived from the `fhir.resources`_ package, with additional ISARIC
 specific FHIR extensions.
 

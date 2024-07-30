@@ -1,0 +1,20 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: index
+parts:
+- caption: Howtos
+  chapters:
+  - file: howto/conversion-fhir
+  - file: howto/conversion-data
+- caption: Specifications
+  chapters:
+  - file: spec/fhirflat
+  - file: spec/mapping
+  - file: spec/isaric-fhir-extensions
+- caption: Module reference
+  chapters:
+  - file: fhirflat
+  - file: resources_base
+  - file: resources

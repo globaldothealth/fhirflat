@@ -6,6 +6,7 @@ FHIRflat.
 import argparse
 import hashlib
 import os
+import shutil
 import timeit
 import warnings
 from datetime import datetime
@@ -338,6 +339,11 @@ def create_dictionary(
                 else:
                     raise ValueError("Multiple values found in one-to-one mapping")
 
+        if filtered_data.drop([subject_id], axis=1).empty:
+            warnings.warn(
+                f"No data found for the {resource} resource.", UserWarning, stacklevel=2
+            )
+            return None
         filtered_data = filtered_data.groupby(subject_id, as_index=False).agg(condense)
 
     if not one_to_one:
@@ -387,7 +393,7 @@ def checksum_text(checksums: dict[str, str]) -> str:
 
 
 def generate_metadata(folder_name: str) -> tuple[FlatMetadata, dict[str, str]]:
-    "Generate metadata for a FHIRFlat folder"
+    "Generate metadata for a FHIRflat folder"
 
     patient_file = os.path.join(folder_name, "patient.parquet")
     if not os.path.exists(patient_file):
@@ -433,6 +439,7 @@ def convert_data_to_flat(
     sheet_id: str | None = None,
     subject_id="subjid",
     validate: bool = True,
+    compress_format: None | str = None,
 ):
     """
     Takes raw clinical data (currently assumed to be a one-row-per-patient format like
@@ -462,6 +469,8 @@ def convert_data_to_flat(
         The name of the column containing the subject ID in the data file.
     validate: bool
         Whether to validate the FHIRflat files after creation.
+    compress_format: optional str
+        If the output folder should be zipped, and if so with what format.
     """
 
     if not mapping_files_types and not sheet_id:
@@ -566,6 +575,9 @@ def convert_data_to_flat(
             )
 
     write_metadata(*generate_metadata(folder_name), Path(folder_name) / "fhirflat.toml")
+    if compress_format:
+        shutil.make_archive(folder_name, compress_format, folder_name)
+        shutil.rmtree(folder_name)
 
 
 def main():
@@ -604,6 +616,13 @@ def main():
         action="store_false",
     )
 
+    parser.add_argument(
+        "-c",
+        "--compress",
+        help="Compress the output folder using this format",
+        choices=["zip", "tar", "gztar", "bztar", "xztar"],
+    )
+
     args = parser.parse_args()
 
     convert_data_to_flat(
@@ -614,6 +633,7 @@ def main():
         sheet_id=args.sheet_id,
         subject_id=args.subject_id,
         validate=args.validate,
+        compress_format=args.compress,
     )
 
 

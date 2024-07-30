@@ -96,9 +96,9 @@ class Validators:
         self, model_name: str, v: Union[StrBytes, dict, Path, FHIRAbstractModel]
     ):
         """ """
-        model_class: Type[BaseModel] | Type[
-            FHIRAbstractModel
-        ] = self.get_fhir_model_class(model_name)
+        model_class: Type[BaseModel] | Type[FHIRAbstractModel] = (
+            self.get_fhir_model_class(model_name)
+        )
 
         if isinstance(v, (str, bytes)):
             try:
