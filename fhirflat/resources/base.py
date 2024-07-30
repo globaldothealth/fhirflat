@@ -273,14 +273,16 @@ class FHIRFlatBase(_DomainResource):
                 )
             flat_df.drop(columns=system_columns, inplace=True)
 
-            list_cols = [
-                col
-                for col in flat_df.columns
-                if flat_df[col].apply(lambda x: isinstance(x, list)).any()
+            potential_dense_cols = [
+                x for x in cls.backbone_elements.keys() if x in flat_df.columns
             ]
-            list_lengths = [len(flat_df[x].dropna().iloc[0]) for x in list_cols]
+            list_lengths = [
+                len(flat_df[x].dropna().iloc[0]) for x in potential_dense_cols
+            ]
             long_list_cols = [
-                x for x, y in zip(list_cols, list_lengths, strict=True) if y > 1
+                x
+                for x, y in zip(potential_dense_cols, list_lengths, strict=True)
+                if y > 1
             ]
 
             if long_list_cols:
