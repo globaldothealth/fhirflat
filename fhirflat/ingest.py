@@ -431,6 +431,7 @@ def convert_data_to_flat(
     mapping_files_types: tuple[dict, dict] | None = None,
     sheet_id: str | None = None,
     subject_id="subjid",
+    validate: bool = True,
 ):
     """
     Takes raw clinical data (currently assumed to be a one-row-per-patient format like
@@ -513,20 +514,19 @@ def convert_data_to_flat(
         else:
             raise ValueError(f"Unknown mapping type {t}")
 
-        errors = resource.ingest_to_flat(
-            df,
-            os.path.join(folder_name, resource.__name__.lower()),
-        )
+        flat_nonvalidated = resource.ingest_to_flat(df)
 
-        # flat_nonvalidated = resource.ingest_to_flat(
-        #     df,
-        #     # os.path.join(folder_name, resource.__name__.lower()),
-        # )
+        if validate:
+            valid_flat, errors = resource.validate_fhirflat(flat_nonvalidated)
 
-        # valid_flat, errors = resource.validate_flat(flat_nonvalidated)
-        # valid_flat.to_parquet(
-        #     f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
-        # )
+            valid_flat.to_parquet(
+                f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+            )
+        else:
+            errors = None
+            flat_nonvalidated.to_parquet(
+                f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+            )
 
         end_time = timeit.default_timer()
         total_time = end_time - start_time

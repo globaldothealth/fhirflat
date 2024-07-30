@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import datetime
 import warnings
 from typing import ClassVar, TypeAlias
 
-import numpy as np
 import orjson
 import pandas as pd
 from fhir.resources.domainresource import DomainResource as _DomainResource
 from pydantic.v1 import ValidationError
 
+from fhirflat import util
 from fhirflat.fhir2flat import fhir2flat
 from fhirflat.flat2fhir import expand_concepts
 
@@ -71,6 +70,8 @@ class FHIRFlatBase(_DomainResource):
         if not isinstance(data, dict):
             data: dict = orjson.loads(data)
 
+        data = {k: v for k, v in data.items() if v is not None}
+
         data = cls.cleanup(data)
 
         data = expand_concepts(data, cls)
@@ -85,55 +86,58 @@ class FHIRFlatBase(_DomainResource):
         except ValidationError as e:
             return e
 
-    # @classmethod
-    # def validate_fhirflat(
-    #     cls, flat_df: pd.DataFrame
-    # ) -> tuple[FHIRFlatBase | list[FHIRFlatBase], pd.Series | None]:
-    #     """
-    #     Takes a FHIRflat dataframe and converts the data into a list of populated
-    #     FHIR resources. Returns a pandas Series of valid resources and a dataframe of
-    #     the FHIRflat data that produced validation errors, with a `validation_error`
-    #     column describing the error.
-    #     If a single resource is found, it is returned as a single FHIR resource or
-    #     raises a ValidationError.
+    @classmethod
+    def validate_fhirflat(
+        cls, df: pd.DataFrame
+    ) -> tuple[FHIRFlatBase | list[FHIRFlatBase], pd.Series | None]:
+        """
+        Takes a FHIRflat dataframe and validates the data against the FHIR
+        schema. Returns a dataframe of valid resources and a dataframe of the
+        FHIRflat data that produced validation errors, with a `validation_error`
+        column describing the error.
 
-    #     Parameters
-    #     ----------
-    #     flat_df: pd.DataFrame
-    #         Pandas dataframe containing the FHIRflat data
+        Parameters
+        ----------
+        df: pd.DataFrame
+            Pandas dataframe containing the FHIRflat data
 
-    #     Returns
-    #     -------
-    #     resources: FHIRFlatBase or list[FHIRFlatBase]
-    #         A list of populated FHIR resources
-    #     errors: pd.Series or None
-    #         A dataframe containing the flat_dict and validation errors.
-    #     """
-    #     flat_df["fhir"] = flat_df.apply(
-    #         lambda row: row.to_json(date_format="iso", date_unit="s"), axis=1
-    #     ).apply(lambda x: cls.create_fhir_resource(x))
+        Returns
+        -------
+        valid_resources: pd.DataFrame
+            A dataframe containing the valid FHIR resources
+        errors: pd.DataFrame
+            A dataframe containing the flat_dict and validation errors.
+        """
 
-    #     if len(flat_df) == 1:
-    #         resource = flat_df["fhir"].iloc[0]
-    #         if isinstance(resource, ValidationError):
-    #             raise resource
-    #         else:
-    #             return resource, None
-    #     else:
-    #         resources = list(flat_df["fhir"])
-    #         errors = None
-    #         if any(isinstance(r, ValidationError) for r in resources):
-    #             validation_error_mask = flat_df["fhir"].apply(
-    #                 lambda x: isinstance(x, ValidationError)
-    #             )
+        flat_df = df.copy()
 
-    #             errors = flat_df[validation_error_mask].copy()
-    #             errors.rename(columns={"fhir": "validation_error"}, inplace=True)
+        flat_df["fhir"] = flat_df.apply(
+            lambda row: row.to_json(date_format="iso", date_unit="s"), axis=1
+        ).apply(lambda x: cls.create_fhir_resource(x))
 
-    #             valid_fhir = flat_df[~validation_error_mask]
-    #             resources = valid_fhir["fhir"]
+        if len(flat_df) == 1:
+            resource = flat_df["fhir"].iloc[0]
+            if isinstance(resource, ValidationError):
+                raise resource
+            else:
+                return resource, None
+        else:
+            resources = list(flat_df["fhir"])
+            errors = None
+            if any(isinstance(r, ValidationError) for r in resources):
+                validation_error_mask = flat_df["fhir"].apply(
+                    lambda x: isinstance(x, ValidationError)
+                )
 
-    #         return resources, errors
+                errors = flat_df[validation_error_mask].copy()
+                errors.rename(columns={"fhir": "validation_error"}, inplace=True)
+
+                valid_fhir = flat_df[~validation_error_mask]
+                valid_fhirflat = valid_fhir.drop(columns=["fhir"])
+            else:
+                valid_fhirflat = flat_df.drop(columns=["fhir"])
+
+            return valid_fhirflat, errors
 
     @classmethod
     def from_flat(cls, file: str) -> FHIRFlatBase | list[FHIRFlatBase]:
@@ -235,10 +239,12 @@ class FHIRFlatBase(_DomainResource):
         return condensed_mapped_data
 
     @classmethod
-    def ingest_to_flat(cls, data: pd.DataFrame, filename: str) -> pd.DataFrame | None:
+    def ingest_to_flat(cls, data: pd.DataFrame) -> pd.DataFrame | None:
         """
-        Takes a pandas dataframe and populates the resource with the data.
-        Creates a FHIRflat parquet file for the resources.
+        Takes a pandas dataframe containing the populated mapping file and a dictionary
+        representing the FHIRflat resource and creates the FHIRflat parquet file.
+        Performs data formatting on the date and coding columns to account for
+        simplifications parquet makes when saving.
 
         Parameters
         ----------
@@ -250,148 +256,43 @@ class FHIRFlatBase(_DomainResource):
         Returns
         -------
         pd.DataFrame or None
-            A dataframe containing the flat_dict and validation errors.
+            A dataframe containing the FHIRflat data.
         """
 
         data.loc[:, "flat_dict"] = cls.ingest_backbone_elements(data["flat_dict"])
 
-        # Creates a columns of FHIR resource instances
-        data["fhir"] = data["flat_dict"].apply(lambda x: cls.create_fhir_resource(x))
-
-        validation_error_mask = data["fhir"].apply(
-            lambda x: isinstance(x, ValidationError)
-        )
-
-        valid_fhir = data[~validation_error_mask].copy()
-
-        # flattens resources back out
-        flat_df = valid_fhir["fhir"].apply(lambda x: x.to_flat())
+        flat_df = pd.json_normalize(data["flat_dict"])
 
         if not flat_df.empty:
-            # create FHIR expected date format
-            for date_cols in [
-                x
-                for x in flat_df.columns
-                if ("date" in x.lower() or "period" in x.lower() or "time" in x.lower())
-            ]:
-                # replace nan with None
-                flat_df[date_cols] = flat_df[date_cols].replace(np.nan, None)
+            # apply the coding column formatting in here
+            system_columns = flat_df.columns[flat_df.columns.str.endswith(".system")]
+            for coding_col in system_columns:
+                col = coding_col.removesuffix(".system")
+                flat_df = flat_df.apply(
+                    lambda x, c=col: util.condense_codes(x, c), axis=1
+                )
+            flat_df.drop(columns=system_columns, inplace=True)
 
-                # convert datetime objects to ISO strings
-                # (stops unwanted parquet conversions)
-                # but skips over extensions that have floats/strings rather than dates
-                flat_df[date_cols] = flat_df[date_cols].apply(
-                    lambda x: (
-                        x.isoformat()
-                        if isinstance(x, datetime.datetime)
-                        or isinstance(x, datetime.date)
-                        else x
-                    )
+            list_cols = [
+                col
+                for col in flat_df.columns
+                if flat_df[col].apply(lambda x: isinstance(x, list)).any()
+            ]
+            list_lengths = [len(flat_df[x].dropna().iloc[0]) for x in list_cols]
+            long_list_cols = [
+                x for x, y in zip(list_cols, list_lengths, strict=True) if y > 1
+            ]
+
+            if long_list_cols:
+                flat_df.rename(
+                    columns={x: x + "_dense" for x in long_list_cols}, inplace=True
                 )
 
-            for coding_column in [
-                x
-                for x in flat_df.columns
-                if x.lower().endswith(".code") or x.lower().endswith(".text")
-            ]:
-                flat_df[coding_column] = flat_df[coding_column].apply(
-                    lambda x: [x] if isinstance(x, str) else x
-                )
+            # format dates and columns
+            flat_df = util.format_flat(flat_df, cls)
 
-            flat_df.to_parquet(f"{filename}.parquet")
-        data_errors = data[validation_error_mask].copy()
-        data_errors.rename(columns={"fhir": "validation_error"}, inplace=True)
-        return data_errors if not data_errors.empty else None
-
-    # @classmethod
-    # def ingest_to_flat(cls, data: pd.DataFrame) -> pd.DataFrame | None:
-    #     """
-    #     Takes a pandas dataframe containg the populated mapping file and a dictionary
-    #     representing the FHIRflat resource and creates the FHIRflat parquet file.
-    #     Performs data formatting on the date and coding columns to account for
-    #     simplifications parquet makes when saving.
-
-    #     Parameters
-    #     ----------
-    #     data: pd.DataFrame
-    #         Pandas dataframe containing the data
-    #     filename: str
-    #         Name of the parquet file to be generated.
-
-    #     Returns
-    #     -------
-    #     pd.DataFrame or None
-    #         A dataframe containing the FHIRflat data.
-    #     """
-
-    #     data.loc[:, "flat_dict"] = cls.ingest_backbone_elements(data["flat_dict"])
-
-    #     flat_df = pd.json_normalize(data["flat_dict"])
-
-    #     if not flat_df.empty:
-    #         # apply the coding column formatting in here
-    #         system_columns = flat_df.columns[flat_df.columns.str.endswith(".system")]
-    #         for coding_col in system_columns:
-    #             col = coding_col.removesuffix(".system")
-    #             flat_df = flat_df.apply(lambda x: condense_codes(x, col), axis=1)
-    #         flat_df.drop(columns=system_columns, inplace=True)
-
-    #         # find and create dense columns - not working
-    #         list_columns = flat_df.map(lambda x: isinstance(x, list))
-    #         list_lengths = [len(flat_df[x][0]) for x in list_cols]
-    #         long_list_cols = [
-    #             x for x, y in zip(list_cols, list_lengths, strict=True) if y > 1
-    #         ]
-
-    #         if long_list_cols:
-    #             flat_df.rename(
-    #                 columns={x: x + "_dense" for x in long_list_cols}, inplace=True
-    #             )
-
-    #         # format dates and columns
-    #         flat_df = format_flat(flat_df)
-
-    #         # flat_df.to_parquet(f"{filename}.parquet")
-    #         return flat_df
-    #     return None
-
-    # @classmethod
-    # def validate_flat(cls, flat_df: pd.DataFrame)
-    #   -> tuple[pd.DataFrame, pd.DataFrame]:
-    #     """
-    #     Takes a FHIRflat dataframe and validates the data against the FHIR
-    #     schema. Returns a dataframe of valid resources and a dataframe of the
-    #     FHIRflat data that produced validation errors, with a `validation_error`
-    #     column describing the error.
-
-    #     Parameters
-    #     ----------
-    #     flat_df: pd.DataFrame
-    #         Pandas dataframe containing the FHIRflat data
-
-    #     Returns
-    #     -------
-    #     valid_resources: pd.DataFrame
-    #         A dataframe containing the valid FHIR resources
-    #     errors: pd.DataFrame
-    #         A dataframe containing the flat_dict and validation errors.
-    #     """
-
-    #     flat_df["fhir"] = flat_df.apply(lambda row: row.to_json(), axis=1).apply(
-    #         lambda x: cls.create_fhir_resource(x)
-    #     )
-
-    #     validation_error_mask = flat_df["fhir"].apply(
-    #         lambda x: isinstance(x, ValidationError)
-    #     )
-
-    #     errors = flat_df[validation_error_mask].copy()
-    #     errors.rename(columns={"fhir": "validation_error"}, inplace=True)
-
-    #     valid_fhir = flat_df[~validation_error_mask]
-    #     valid_fhir = valid_fhir.drop(columns=["fhir"])
-
-    #     return valid_fhir, errors
+            return flat_df
+        return None
 
     @classmethod
     def fhir_bulk_import(cls, file: str) -> FHIRFlatBase | list[FHIRFlatBase]:

@@ -106,28 +106,26 @@ CONDITION_DICT_INPUT = {
 }
 
 CONDITION_FLAT = {
-    "resourceType": ["Condition"],
+    "resourceType": "Condition",
     "extension.presenceAbsence.code": ["http://snomed.info/sct|410605003"],
     "extension.presenceAbsence.text": ["Present"],
-    "extension.prespecifiedQuery": [True],
+    "extension.prespecifiedQuery": True,
     "category.code": [
-        [
-            "http://snomed.info/sct|55607006",
-            "http://terminology.hl7.org/CodeSystem/condition-category|problem-list-item",  # noqa: E501
-        ]
+        "http://snomed.info/sct|55607006",
+        "http://terminology.hl7.org/CodeSystem/condition-category|problem-list-item",  # noqa: E501
     ],
-    "category.text": [["Problem", None]],
+    "category.text": ["Problem", None],
     "bodySite.code": ["http://snomed.info/sct|38266002"],
-    "bodySite.text": ["whole body"],
-    "onsetDateTime": [datetime.date(2013, 4, 2)],
-    "abatementString": ["around April 9, 2013"],
-    "recordedDate": [datetime.date(2013, 4, 4)],
+    "bodySite.text": "whole body",
+    "onsetDateTime": datetime.date(2013, 4, 2),
+    "abatementString": "around April 9, 2013",
+    "recordedDate": datetime.date(2013, 4, 4),
     "severity.code": ["http://snomed.info/sct|255604002"],
     "severity.text": ["Mild"],
     "code.code": ["http://snomed.info/sct|386661006"],
-    "code.text": ["Fever"],
-    "subject": ["Patient/f201"],
-    "encounter": ["Encounter/f201"],
+    "code.text": "Fever",
+    "subject": "Patient/f201",
+    "encounter": "Encounter/f201",
 }
 
 CONDITION_DICT_OUT = {
@@ -209,11 +207,12 @@ def test_condition_to_flat():
 
     fever.to_flat("test_condition.parquet")
 
-    assert_frame_equal(
-        pd.read_parquet("test_condition.parquet"),
-        pd.DataFrame(CONDITION_FLAT),
-        check_like=True,
-    )
+    fever_flat = pd.read_parquet("test_condition.parquet")
+    expected = pd.DataFrame([CONDITION_FLAT], index=[0])
+    expected = expected.reindex(sorted(expected.columns), axis=1)
+    # v, e = Condition.validate_fhirflat(expected)
+
+    assert_frame_equal(fever_flat, expected)
     os.remove("test_condition.parquet")
 
 

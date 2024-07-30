@@ -74,9 +74,68 @@ def get_local_resource(t: str):
     return getattr(fhirflat, t)
 
 
-def format_flat(flat_df):
+def find_data_class(data_class, k):
     """
-    Performs formatting ondates/lists in FHIRflat resources.
+    Finds the type class for item k within the data class.
+
+    Parameters
+    ----------
+    data_class: list[BaseModel] or BaseModel
+        The data class to search within. If a list, the function will search for the
+        a class with a matching title to k.
+    k: str
+        The property to search for within the data class
+    """
+
+    if isinstance(data_class, list):
+        title_matches = [k.lower() == c.schema()["title"].lower() for c in data_class]
+        result = [x for x, y in zip(data_class, title_matches, strict=True) if y]
+        if len(result) == 1:
+            return get_fhirtype(k)
+        else:
+            raise ValueError(f"Couldn't find a matching class for {k} in {data_class}")
+
+    else:
+        k_schema = data_class.schema()["properties"].get(k)
+
+        base_class = (
+            k_schema.get("items").get("type")
+            if k_schema.get("items") is not None
+            else k_schema.get("type")
+        )
+
+        if base_class is None:
+            assert k_schema.get("type") == "array"
+
+            base_class = [opt.get("type") for opt in k_schema["items"]["anyOf"]]
+        return get_fhirtype(base_class)
+
+
+def code_or_codeable_concept(col_name, resource):
+    search_terms = col_name.split(".")
+    fhir_type = find_data_class(resource, search_terms[0])
+
+    if isinstance(fhir_type, list):
+        return code_or_codeable_concept(".".join(search_terms[1:]), fhir_type)
+
+    if len(search_terms) == 2:  # e.g. "code.code", "age.code"
+        schema = fhir_type.schema()["properties"]
+        codeable_concepts = [
+            key
+            for key in schema.keys()
+            if "codeableconcept" in key.lower() or "coding" in key.lower()
+        ]
+        if codeable_concepts:
+            return True
+        else:
+            return False
+    else:
+        return code_or_codeable_concept(".".join(search_terms[1:]), fhir_type)
+
+
+def format_flat(flat_df, resource):
+    """
+    Performs formatting on dates/lists in FHIRflat resources.
     """
 
     for date_cols in [
@@ -101,8 +160,10 @@ def format_flat(flat_df):
     for coding_column in [
         x
         for x in flat_df.columns
-        if (x.lower().endswith(".code") or x.lower().endswith(".text"))
-        and "Quantity" not in x
+        if (
+            (x.lower().endswith(".code") or x.lower().endswith(".text"))
+            and code_or_codeable_concept(x, resource)
+        )
     ]:
         flat_df[coding_column] = flat_df[coding_column].apply(
             lambda x: [x] if isinstance(x, str) else x
@@ -113,7 +174,7 @@ def format_flat(flat_df):
 
 def condense_codes(row, code_col):
     raw_codes = row[(code_col + ".code")]
-    if isinstance(raw_codes, (str, float)) and raw_codes == raw_codes:
+    if isinstance(raw_codes, (str, int, float)) and raw_codes == raw_codes:
         formatted_code = (
             raw_codes if isinstance(raw_codes, str) else str(int(raw_codes))
         )

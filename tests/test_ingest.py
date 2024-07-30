@@ -17,9 +17,9 @@ import os
 import sys
 import shutil
 from pathlib import Path
-from decimal import Decimal
 import numpy as np
 import pytest
+from pydantic.v1 import ValidationError
 
 if sys.version_info < (3, 11):  # tomllib was introduced in 3.11
     import tomli  # pragma: no cover
@@ -448,10 +448,9 @@ def test_create_dict_one_to_one_dense_freetext(file, expected):
 
 
 ENCOUNTER_SINGLE_ROW_FLAT = {
-    "resourceType": "Encounter",
-    "id": "11",
-    "class.code": "https://snomed.info/sct|32485007",
-    "class.text": "Hospital admission (procedure)",
+    "id": 11,
+    "class.code": ["https://snomed.info/sct|32485007"],
+    "class.text": ["Hospital admission (procedure)"],
     "diagnosis_dense": [
         {
             "condition": [
@@ -509,8 +508,8 @@ ENCOUNTER_SINGLE_ROW_FLAT = {
     "subject": "Patient/2",
     "actualPeriod.start": "2021-04-01T18:00:00-03:00",
     "actualPeriod.end": "2021-04-10",
-    "admission.dischargeDisposition.code": "https://snomed.info/sct|371827001",
-    "admission.dischargeDisposition.text": "Patient discharged alive (finding)",
+    "admission.dischargeDisposition.code": ["https://snomed.info/sct|371827001"],
+    "admission.dischargeDisposition.text": ["Patient discharged alive (finding)"],
     "extension.timingPhase.code": ["https://snomed.info/sct|278307001"],
     "extension.timingPhase.text": ["On admission (qualifier value)"],
 }
@@ -527,14 +526,19 @@ def test_load_data_one_to_one_single_row():
     )
 
     assert df is not None
-    Encounter.ingest_to_flat(df, "encounter_ingestion_single")
+
+    flat_encounter = Encounter.ingest_to_flat(df)
+    expected_encounter = pd.DataFrame([ENCOUNTER_SINGLE_ROW_FLAT], index=[0])
+
+    _, error = Encounter.validate_fhirflat(flat_encounter)
+
+    assert error is None
 
     assert_frame_equal(
-        pd.read_parquet("encounter_ingestion_single.parquet"),
-        pd.DataFrame([ENCOUNTER_SINGLE_ROW_FLAT], index=[0]),
-        check_dtype=False,
+        flat_encounter,
+        expected_encounter,
+        check_like=True,
     )
-    os.remove("encounter_ingestion_single.parquet")
 
 
 def test_load_data_one_to_one_dense_single_row():
@@ -548,13 +552,15 @@ def test_load_data_one_to_one_dense_single_row():
     )
 
     assert df is not None
-    Encounter.ingest_to_flat(df, "encounter_ingestion_dense")
 
-    df_parquet = pd.read_parquet("encounter_ingestion_dense.parquet")
+    flat_diagnosis = Encounter.ingest_to_flat(df)
+
+    _, e = Encounter.validate_fhirflat(flat_diagnosis)
+    assert e is None
 
     expected_diagnosis = [
         {
-            "condition": [{"concept": {"coding": None, "text": "sepsis"}}],
+            "condition": [{"concept": {"text": "sepsis"}}],
             "use": [
                 {
                     "coding": [
@@ -578,7 +584,6 @@ def test_load_data_one_to_one_dense_single_row():
                                 "system": "https://snomed.info/sct",
                             }
                         ],
-                        "text": None,
                     }
                 }
             ],
@@ -596,23 +601,21 @@ def test_load_data_one_to_one_dense_single_row():
         },
     ]
 
-    assert all(df_parquet["diagnosis_dense"][0] == expected_diagnosis)
-    os.remove("encounter_ingestion_dense.parquet")
+    assert flat_diagnosis["diagnosis_dense"].iloc[0] == expected_diagnosis
 
 
 ENCOUNTER_SINGLE_ROW_MULTI = {
-    "resourceType": ["Encounter", "Encounter", "Encounter", "Encounter"],
     "class.code": [
-        "https://snomed.info/sct|371883000",
-        "https://snomed.info/sct|32485007",
-        "https://snomed.info/sct|32485007",
-        "https://snomed.info/sct|32485007",
+        ["https://snomed.info/sct|371883000"],
+        ["https://snomed.info/sct|32485007"],
+        ["https://snomed.info/sct|32485007"],
+        ["https://snomed.info/sct|32485007"],
     ],
     "class.text": [
-        "Outpatient procedure (procedure)",
-        "Hospital admission (procedure)",
-        "Hospital admission (procedure)",
-        "Hospital admission (procedure)",
+        ["Outpatient procedure (procedure)"],
+        ["Hospital admission (procedure)"],
+        ["Hospital admission (procedure)"],
+        ["Hospital admission (procedure)"],
     ],
     "diagnosis_dense": [
         None,
@@ -745,7 +748,7 @@ ENCOUNTER_SINGLE_ROW_MULTI = {
         ["Final diagnosis (discharge) (contextual qualifier) (qualifier value)"],
     ],
     "subject": ["Patient/1", "Patient/2", "Patient/3", "Patient/4"],
-    "id": ["10", "11", "12", "13"],
+    "id": [10, 11, 12, 13],
     "actualPeriod.start": [
         "2020-05-01",
         "2021-04-01T18:00:00-03:00",
@@ -759,16 +762,16 @@ ENCOUNTER_SINGLE_ROW_MULTI = {
         "2022-06-20",
     ],
     "admission.dischargeDisposition.code": [
-        "https://snomed.info/sct|371827001",
-        "https://snomed.info/sct|371827001",
-        "https://snomed.info/sct|419099009",
-        "https://snomed.info/sct|32485007",
+        ["https://snomed.info/sct|371827001"],
+        ["https://snomed.info/sct|371827001"],
+        ["https://snomed.info/sct|419099009"],
+        ["https://snomed.info/sct|32485007"],
     ],
     "admission.dischargeDisposition.text": [
-        "Patient discharged alive (finding)",
-        "Patient discharged alive (finding)",
-        "Dead (finding)",
-        "Hospital admission (procedure)",
+        ["Patient discharged alive (finding)"],
+        ["Patient discharged alive (finding)"],
+        ["Dead (finding)"],
+        ["Hospital admission (procedure)"],
     ],
     "extension.timingPhase.code": [
         ["https://snomed.info/sct|281379000"],
@@ -796,38 +799,34 @@ def test_load_data_one_to_one_multi_row():
     )
 
     assert df is not None
-    Encounter.ingest_to_flat(df, "encounter_ingestion_multi")
+
+    flat_encounter = Encounter.ingest_to_flat(df)
+
+    _, e = Encounter.validate_fhirflat(flat_encounter)
+    assert e is None
 
     assert_frame_equal(
-        pd.read_parquet("encounter_ingestion_multi.parquet"),
+        flat_encounter,
         pd.DataFrame(ENCOUNTER_SINGLE_ROW_MULTI),
         check_dtype=False,
         check_like=True,
     )
-    os.remove("encounter_ingestion_multi.parquet")
 
 
 OBS_FLAT = {
-    "resourceType": [
-        "Observation",
-        "Observation",
-        "Observation",
-        "Observation",
-        "Observation",
-    ],
     "category.code": [
-        "http://terminology.hl7.org/CodeSystem/observation-category|vital-signs",
-        "http://terminology.hl7.org/CodeSystem/observation-category|vital-signs",
-        "http://terminology.hl7.org/CodeSystem/observation-category|vital-signs",
-        "http://terminology.hl7.org/CodeSystem/observation-category|vital-signs",
-        "http://terminology.hl7.org/CodeSystem/observation-category|vital-signs",
+        ["http://terminology.hl7.org/CodeSystem/observation-category|vital-signs"],
+        ["http://terminology.hl7.org/CodeSystem/observation-category|vital-signs"],
+        ["http://terminology.hl7.org/CodeSystem/observation-category|vital-signs"],
+        ["http://terminology.hl7.org/CodeSystem/observation-category|vital-signs"],
+        ["http://terminology.hl7.org/CodeSystem/observation-category|vital-signs"],
     ],
     "category.text": [
-        "Vital Signs",
-        "Vital Signs",
-        "Vital Signs",
-        "Vital Signs",
-        "Vital Signs",
+        ["Vital Signs"],
+        ["Vital Signs"],
+        ["Vital Signs"],
+        ["Vital Signs"],
+        ["Vital Signs"],
     ],
     "effectiveDateTime": [
         "2020-01-01",
@@ -837,18 +836,18 @@ OBS_FLAT = {
         "2021-02-02",
     ],
     "code.code": [
-        "https://loinc.org|8310-5",
-        "https://loinc.org|8310-5",
-        "https://loinc.org|8310-5",
-        "https://loinc.org|8867-4",
-        "https://loinc.org|8867-4",
+        ["https://loinc.org|8310-5"],
+        ["https://loinc.org|8310-5"],
+        ["https://loinc.org|8310-5"],
+        ["https://loinc.org|8867-4"],
+        ["https://loinc.org|8867-4"],
     ],
     "code.text": [
-        "Body temperature",
-        "Body temperature",
-        "Body temperature",
-        "Heart rate",
-        "Heart rate",
+        ["Body temperature"],
+        ["Body temperature"],
+        ["Body temperature"],
+        ["Heart rate"],
+        ["Heart rate"],
     ],
     "subject": ["Patient/1", "Patient/2", "Patient/3", "Patient/1", "Patient/2"],
     "encounter": [
@@ -858,7 +857,7 @@ OBS_FLAT = {
         "Encounter/10",
         "Encounter/11",
     ],
-    "valueQuantity.value": [Decimal("36.2"), 37.0, 35.5, 120.0, 100.0],
+    "valueQuantity.value": [36.2, 37.0, 35.5, 120.0, 100.0],
     "valueQuantity.unit": [
         "DegreesCelsius",
         "DegreesCelsius",
@@ -891,13 +890,15 @@ def test_load_data_one_to_many_multi_row():
 
     assert df is not None
     clean_df = df.dropna().copy()
-    Observation.ingest_to_flat(clean_df, "observation_ingestion")
 
-    full_df = pd.read_parquet("observation_ingestion.parquet")
+    flat_obs = Observation.ingest_to_flat(clean_df)
 
-    assert len(full_df) == 33
+    _, e = Observation.validate_fhirflat(flat_obs)
+    assert e is None
 
-    df_head = full_df.head(5)
+    assert len(flat_obs) == 33
+
+    df_head = flat_obs.head(5)
 
     assert_frame_equal(
         df_head,
@@ -905,7 +906,6 @@ def test_load_data_one_to_many_multi_row():
         check_dtype=False,
         check_like=True,
     )
-    os.remove("observation_ingestion.parquet")
 
 
 def test_convert_data_to_flat_missing_mapping_error():
@@ -998,7 +998,7 @@ def test_convert_data_to_flat_local_mapping():
     shutil.rmtree(output_folder)
 
 
-def test_ingest_to_flat_validation_errors():
+def test_validate_fhirflat_single_resource_errors():
     df = pd.DataFrame(
         {
             "subjid": [2],
@@ -1041,12 +1041,17 @@ def test_ingest_to_flat_validation_errors():
         index=[0],
     )
 
-    error_df = Encounter.ingest_to_flat(df, "encounter_date_error")
-    assert len(error_df) == 1
-    assert (
-        repr(error_df["validation_error"][0].errors())
-        == "[{'loc': ('actualPeriod', 'start'), 'msg': 'invalid datetime format', 'type': 'value_error.datetime'}]"  # noqa: E501
-    )
+    flat_df = Encounter.ingest_to_flat(df)
+    with pytest.raises(ValidationError, match="invalid datetime format"):
+        _, _ = Encounter.validate_fhirflat(flat_df)
+    # assert len(error_df) == 1
+    # assert (
+    #     repr(error_df["validation_error"][0].errors())
+    #     == "[{'loc': ('actualPeriod', 'start'), 'msg': 'invalid datetime format', 'type': 'value_error.datetime'}]"  # noqa: E501
+    # )
+
+
+# TODO: add test for validate_fhirflat with multiple resources
 
 
 def test_convert_data_to_flat_local_mapping_errors():
@@ -1069,9 +1074,7 @@ def test_convert_data_to_flat_local_mapping_errors():
     encounter_df = pd.read_parquet("tests/ingestion_output_errors/encounter.parquet")
     obs_df = pd.read_parquet("tests/ingestion_output_errors/observation.parquet")
 
-    expected_encounter_minus_errors = (
-        pd.DataFrame(ENCOUNTER_SINGLE_ROW_MULTI).iloc[:-1].dropna(axis=1, how="all")
-    )
+    expected_encounter_minus_errors = pd.DataFrame(ENCOUNTER_SINGLE_ROW_MULTI).iloc[:-1]
 
     assert_frame_equal(
         encounter_df,

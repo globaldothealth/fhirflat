@@ -6,14 +6,9 @@ from fhir.resources.domainresource import DomainResource as _DomainResource
 from fhir.resources.fhirprimitiveextension import FHIRPrimitiveExtension
 from fhir.resources.period import Period
 from fhir.resources.quantity import Quantity
-from pydantic.v1 import BaseModel
 from pydantic.v1.error_wrappers import ValidationError
 
-from .util import (
-    get_fhirtype,
-    get_local_extension_type,
-    group_keys,
-)
+from .util import find_data_class, get_fhirtype, get_local_extension_type, group_keys
 
 
 def create_codeable_concept(
@@ -172,43 +167,6 @@ def set_datatypes(k, v_dict, klass) -> dict:
             return {"url": k, f"{value_type[0]}": v_dict[k]}
 
     return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
-
-
-def find_data_class(data_class: list[BaseModel] | BaseModel, k: str) -> BaseModel:
-    """
-    Finds the type class for item k within the data class.
-
-    Parameters
-    ----------
-    data_class: list[BaseModel] or BaseModel
-        The data class to search within. If a list, the function will search for the
-        a class with a matching title to k.
-    k: str
-        The property to search for within the data class
-    """
-
-    if isinstance(data_class, list):
-        title_matches = [k.lower() == c.schema()["title"].lower() for c in data_class]
-        result = [x for x, y in zip(data_class, title_matches, strict=True) if y]
-        if len(result) == 1:
-            return get_fhirtype(k)
-        else:
-            raise ValueError(f"Couldn't find a matching class for {k} in {data_class}")
-
-    else:
-        k_schema = data_class.schema()["properties"].get(k)
-
-        base_class = (
-            k_schema.get("items").get("type")
-            if k_schema.get("items") is not None
-            else k_schema.get("type")
-        )
-
-        if base_class is None:
-            assert k_schema.get("type") == "array"
-
-            base_class = [opt.get("type") for opt in k_schema["items"]["anyOf"]]
-        return get_fhirtype(base_class)
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
