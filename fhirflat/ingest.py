@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import numpy as np
 import pandas as pd
+from pyarrow.lib import ArrowTypeError
 
 import fhirflat
 from fhirflat.util import get_local_resource, group_keys
@@ -459,10 +460,19 @@ def convert_data_to_flat(
         be named by resource, and contain the mapping for that resource.
     subject_id: str
         The name of the column containing the subject ID in the data file.
+    validate: bool
+        Whether to validate the FHIRflat files after creation.
     """
 
     if not mapping_files_types and not sheet_id:
         raise TypeError("Either mapping_files_types or sheet_id must be provided")
+
+    if not validate:
+        warnings.warn(
+            "Validation of the FHIRflat files has been disabled. ",
+            UserWarning,
+            stacklevel=2,
+        )
 
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -524,9 +534,19 @@ def convert_data_to_flat(
             )
         else:
             errors = None
-            flat_nonvalidated.to_parquet(
-                f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
-            )
+            try:
+                flat_nonvalidated.to_parquet(
+                    f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+                )
+            except ArrowTypeError as e:
+                warnings.warn(
+                    f"Error writing {resource.__name__.lower()}.parquet: {e}\n"
+                    "This is likely due to a validation error, re-run without "
+                    "--no-validate.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                continue
 
         end_time = timeit.default_timer()
         total_time = end_time - start_time
@@ -577,6 +597,13 @@ def main():
         default="subjid",
     )
 
+    parser.add_argument(
+        "--no-validate",
+        help="Do the data conversion without validation",
+        dest="validate",
+        action="store_false",
+    )
+
     args = parser.parse_args()
 
     convert_data_to_flat(
@@ -586,6 +613,7 @@ def main():
         folder_name=args.output,
         sheet_id=args.sheet_id,
         subject_id=args.subject_id,
+        validate=args.validate,
     )
 
 
