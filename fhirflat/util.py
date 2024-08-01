@@ -70,8 +70,13 @@ def get_local_extension_type(t: str):
             raise AttributeError(f"Could not find {t} in fhirflat extensions") from ae
 
 
-def get_local_resource(t: str):
-    return getattr(fhirflat, t)
+def get_local_resource(t: str, case_insensitive: bool = False):
+    if case_insensitive is False:
+        return getattr(fhirflat, t)
+    else:
+        for a in dir(fhirflat):
+            if a.lower() == t.lower():
+                return getattr(fhirflat, a)
 
 
 def find_data_class(data_class, k):

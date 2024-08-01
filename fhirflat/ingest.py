@@ -580,6 +580,49 @@ def convert_data_to_flat(
         shutil.rmtree(folder_name)
 
 
+def validate(folder_name: str, compress_format: str | None = None):
+    """
+    Takes a folder containing (optionally compressed) FHIRflat files and validates them
+    against the FHIR. File names **must** correspond to the FHIR resource types they
+    represent. E.g. a file containing Patient resources must be named "patient.parquet".
+    """
+
+    if compress_format:
+        shutil.unpack_archive(folder_name, compress_format, folder_name)
+        directory = Path(folder_name).parents
+    else:
+        directory = folder_name
+
+    for file in Path(directory).glob("*.parquet"):
+        df = pd.read_parquet(file)
+        resource = file.stem
+        resource_type = get_local_resource(resource, case_insensitive=True)
+
+        valid_flat, errors = resource_type.validate_fhirflat(df, return_files=True)
+
+        if errors is not None:
+
+            valid_flat.to_parquet(os.path.join(directory, f"{resource}_valid.parquet"))
+            errors.to_csv(
+                os.path.join(directory, f"{resource}_errors.csv"), index=False
+            )
+            error_length = len(errors)
+            print(
+                f"{error_length} rows in {file.name} have validation errors. "
+                f"Errors saved to {resource}_errors.csv. "
+                f"Valid rows saved to {resource}_valid.parquet"
+            )
+        else:
+            print(f"{file.name} is valid")
+    print("Validation complete")
+
+    if compress_format:
+        new_directory = directory + "_validated"
+        shutil.make_archive(new_directory, compress_format, new_directory)
+        shutil.rmtree(directory)
+        print(f"Validated files saved as {new_directory}.{compress_format}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert data to FHIRflat parquet files",
@@ -634,6 +677,28 @@ def main():
         subject_id=args.subject_id,
         validate=args.validate,
         compress_format=args.compress,
+    )
+
+
+def validate_cli():
+    parser = argparse.ArgumentParser(
+        description="Validate FHIRflat parquet files against the FHIR schema",
+        prog="fhirflat validate",
+    )
+    parser.add_argument("folder", help="File path to folder containing FHIRflat files")
+
+    parser.add_argument(
+        "-c",
+        "--compress_format",
+        help="Format the folder is compressed in",
+        choices=["zip", "tar", "gztar", "bztar", "xztar"],
+    )
+
+    args = parser.parse_args()
+
+    validate(
+        args.folder,
+        compress_format=args.compress_format,
     )
 
 

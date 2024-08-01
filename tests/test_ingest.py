@@ -9,6 +9,7 @@ from fhirflat.ingest import (
     write_metadata,
     checksum,
     main,
+    validate,
 )
 from fhirflat.resources.encounter import Encounter
 from fhirflat.resources.observation import Observation
@@ -1225,3 +1226,31 @@ def test_convert_data_to_flat_local_mapping_errors():
     )
 
     shutil.rmtree(output_folder)
+
+
+def test_validate_valid(capsys):
+    folder = "tests/data/valid_flat_bundle"
+
+    validate(folder)
+
+    captured = capsys.readouterr()
+    assert "encounter.parquet is valid" in captured.out
+    assert "condition.parquet is valid" in captured.out
+    assert "patient.parquet is valid" in captured.out
+    assert "Validation complete" in captured.out
+
+
+def test_validate_invalid(capsys):
+    folder = "tests/data/invalid_flat_bundle"
+
+    validate(folder)
+
+    captured = capsys.readouterr()
+    assert "encounter.parquet have validation errors" in captured.out
+    assert "condition.parquet have validation errors" in captured.out
+    assert "Validation complete" in captured.out
+
+    Path.unlink(os.path.join(folder, "encounter_errors.csv"))
+    Path.unlink(os.path.join(folder, "encounter_valid.parquet"))
+    Path.unlink(os.path.join(folder, "condition_errors.csv"))
+    Path.unlink(os.path.join(folder, "condition_valid.parquet"))

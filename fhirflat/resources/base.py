@@ -88,7 +88,7 @@ class FHIRFlatBase(_DomainResource):
 
     @classmethod
     def validate_fhirflat(
-        cls, df: pd.DataFrame
+        cls, df: pd.DataFrame, return_files: bool = False
     ) -> tuple[FHIRFlatBase | list[FHIRFlatBase], pd.Series | None]:
         """
         Takes a FHIRflat dataframe and validates the data against the FHIR
@@ -100,6 +100,9 @@ class FHIRFlatBase(_DomainResource):
         ----------
         df: pd.DataFrame
             Pandas dataframe containing the FHIRflat data
+        return_files: bool
+            If True, returns the valid FHIR resources & errors as a parquet file,
+            even if only one row is present in the dataframe.
 
         Returns
         -------
@@ -115,7 +118,7 @@ class FHIRFlatBase(_DomainResource):
             lambda row: row.to_json(date_format="iso", date_unit="s"), axis=1
         ).apply(lambda x: cls.create_fhir_resource(x))
 
-        if len(flat_df) == 1:
+        if len(flat_df) == 1 and return_files is False:
             resource = flat_df["fhir"].iloc[0]
             if isinstance(resource, ValidationError):
                 raise resource
