@@ -10,6 +10,7 @@ from fhirflat.ingest import (
     checksum,
     main,
     validate,
+    validate_cli,
 )
 from fhirflat.resources.encounter import Encounter
 from fhirflat.resources.observation import Observation
@@ -938,6 +939,45 @@ def test_convert_data_to_flat_wrong_mapping_type_error():
         )
 
 
+def test_convert_data_to_flat_no_validation_warning():
+    mappings = {
+        Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
+    }
+    resource_types = {"Encounter": "one-to-one"}
+
+    with pytest.warns(
+        UserWarning, match="Validation of the FHIRflat files has been disabled"
+    ):
+        convert_data_to_flat(
+            "tests/dummy_data/combined_dummy_data.csv",
+            folder_name="tests/ingestion_output",
+            date_format="%Y-%m-%d",
+            timezone="Brazil/East",
+            mapping_files_types=(mappings, resource_types),
+            validate=False,
+        )
+    shutil.rmtree("tests/ingestion_output")
+
+
+# TODO: write a working version of this (needs data like the private ones)
+# def test_convert_data_to_flat_no_validation_invalid_file_warning():
+#     mappings = {
+#         Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
+#     }
+#     resource_types = {"Encounter": "one-to-one"}
+
+#     with pytest.warns(UserWarning, match="This is likely due to a validation error"):
+#         convert_data_to_flat(
+#             "tests/dummy_data/combined_dummy_data_error.csv",
+#             folder_name="tests/ingestion_output_errors",
+#             date_format="%Y-%m-%d",
+#             timezone="Brazil/East",
+#             mapping_files_types=(mappings, resource_types),
+#             validate=False,
+#         )
+#     shutil.rmtree("tests/ingestion_output_errors")
+
+
 def test_generate_metadata():
     meta = generate_metadata("tests/bundle")
     assert meta[0]["checksum"] == METADATA_CHECKSUM
@@ -1021,6 +1061,8 @@ def test_convert_data_to_flat_local_mapping_zipped():
     os.remove("tests/ingestion_output.zip")
 
 
+# This don't run intermittantly - because of the "#NAME" error i get with the googele sheets
+# Turns out this is an issue with custom functions in Google Sheets, not a Python thing.
 def test_main(capsys, monkeypatch):
     # Simulate command line arguments
     monkeypatch.setattr(
@@ -1040,6 +1082,19 @@ def test_main(capsys, monkeypatch):
     assert "Observation took" in captured.out
 
     shutil.rmtree("fhirflat_output")
+
+
+def test_validate_cli(capsys, monkeypatch):
+    # Simulate command line arguments
+    monkeypatch.setattr(
+        "sys.argv",
+        ["ingest.py", "tests/data/valid_flat_bundle"],
+    )
+    validate_cli()
+    captured = capsys.readouterr()
+    assert "encounter.parquet is valid" in captured.out
+    assert "condition.parquet is valid" in captured.out
+    assert "validation errors" not in captured.out
 
 
 def test_validate_fhirflat_single_resource_errors():
