@@ -1,7 +1,27 @@
 from fhirflat.resources.encounter import Encounter
+import fhirflat
 import pandas as pd
 import pytest
 from pydantic.v1 import ValidationError
+
+
+def test_flat_fields():
+    p = fhirflat.Patient()
+    ff = p.flat_fields()
+
+    assert ff == [
+        "id",
+        "extension",
+        "gender",
+        "birthDate",
+        "deceasedBoolean",
+        "deceasedDateTime",
+        "maritalStatus",
+        "multipleBirthBoolean",
+        "multipleBirthInteger",
+        "generalPractitioner",
+        "managingOrganization",
+    ]
 
 
 def test_validate_fhirflat_single_resource_errors():
