@@ -184,9 +184,7 @@ def condense_codes(row, code_col):
             raw_codes if isinstance(raw_codes, str) else str(int(raw_codes))
         )
         codes = row[code_col + ".system"] + "|" + formatted_code
-    elif np.isnan(raw_codes) or raw_codes is None:
-        codes = None
-    else:
+    elif isinstance(raw_codes, list):
         formatted_codes = [
             c if (isinstance(c, str) or c is None) else str(int(c)) for c in raw_codes
         ]
@@ -194,6 +192,8 @@ def condense_codes(row, code_col):
             s + "|" + c
             for s, c in zip(row[code_col + ".system"], formatted_codes, strict=True)
         ]
+    else:
+        codes = None
 
     row[code_col + ".code"] = codes
     return row

@@ -6,12 +6,16 @@ from fhirflat.util import (
     get_fhirtype,
     get_local_extension_type,
     get_local_resource,
+    condense_codes,
 )
 from fhir.resources.quantity import Quantity
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.medicationstatement import MedicationStatementAdherence
 
 from fhirflat.resources.extensions import dateTimeExtension, Duration
+from fhirflat import MedicationStatement
+import pandas as pd
+import numpy as np
 
 
 def test_group_keys():
@@ -78,3 +82,80 @@ def test_get_local_extension_type_raises():
 def test_get_local_resource():
     result = get_local_resource("Patient")
     assert result == fhirflat.Patient
+
+
+def test_get_local_resource_case_insensitive():
+    result = get_local_resource("medicationstatement", case_insensitive=True)
+    assert result == MedicationStatement
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        (
+            (
+                pd.Series(
+                    {
+                        "test.system": "http://loinc.org",
+                        "test.code": "1234",
+                        "test.display": "Test",
+                    }
+                ),
+                "test",
+            ),
+            pd.Series(
+                {
+                    "test.system": "http://loinc.org",
+                    "test.code": "http://loinc.org|1234",
+                    "test.display": "Test",
+                }
+            ),
+        ),
+        (
+            (
+                pd.Series(
+                    {
+                        "test.system": "http://loinc.org",
+                        "test.code": np.nan,
+                        "test.display": "Test",
+                    }
+                ),
+                "test",
+            ),
+            pd.Series(
+                {
+                    "test.system": "http://loinc.org",
+                    "test.code": None,
+                    "test.display": "Test",
+                }
+            ),
+        ),
+        (
+            (
+                pd.Series(
+                    {
+                        "test.system": ["http://loinc.org", "http://snomed.info/sct"],
+                        "test.code": ["1234", 5678],
+                        "test.display": "Test",
+                    }
+                ),
+                "test",
+            ),
+            pd.Series(
+                {
+                    "test.system": ["http://loinc.org", "http://snomed.info/sct"],
+                    "test.code": [
+                        "http://loinc.org|1234",
+                        "http://snomed.info/sct|5678",
+                    ],
+                    "test.display": "Test",
+                }
+            ),
+        ),
+    ],
+)
+def test_condense_codes(input, expected):
+    row, col = input
+    result = condense_codes(row, col)
+
+    pd.testing.assert_series_equal(result, expected)
