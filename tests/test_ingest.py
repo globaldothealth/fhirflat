@@ -958,23 +958,22 @@ def test_convert_data_to_flat_no_validation_warning():
     shutil.rmtree("tests/ingestion_output")
 
 
-# TODO: write a working version of this (needs data like the private ones)
-# def test_convert_data_to_flat_no_validation_invalid_file_warning():
-#     mappings = {
-#         Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
-#     }
-#     resource_types = {"Encounter": "one-to-one"}
+def test_convert_data_to_flat_no_validation_invalid_file_warning():
+    mappings = {
+        Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
+    }
+    resource_types = {"Encounter": "one-to-one"}
 
-#     with pytest.warns(UserWarning, match="This is likely due to a validation error"):
-#         convert_data_to_flat(
-#             "tests/dummy_data/combined_dummy_data_error.csv",
-#             folder_name="tests/ingestion_output_errors",
-#             date_format="%Y-%m-%d",
-#             timezone="Brazil/East",
-#             mapping_files_types=(mappings, resource_types),
-#             validate=False,
-#         )
-#     shutil.rmtree("tests/ingestion_output_errors")
+    with pytest.warns(UserWarning, match="This is likely due to a validation error"):
+        convert_data_to_flat(
+            "tests/dummy_data/combined_dummy_data_parquet_error.csv",
+            folder_name="tests/ingestion_output_errors",
+            date_format="%Y-%m-%d",
+            timezone="Brazil/East",
+            mapping_files_types=(mappings, resource_types),
+            validate=False,
+        )
+    shutil.rmtree("tests/ingestion_output_errors")
 
 
 def test_generate_metadata():
