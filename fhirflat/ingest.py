@@ -588,8 +588,8 @@ def validate(folder_name: str, compress_format: str | None = None):
     """
 
     if compress_format:
-        shutil.unpack_archive(folder_name, compress_format, folder_name)
-        directory = Path(folder_name).parents
+        directory = Path(folder_name).with_suffix("")
+        shutil.unpack_archive(folder_name, extract_dir=directory)
     else:
         directory = folder_name
 
@@ -617,8 +617,12 @@ def validate(folder_name: str, compress_format: str | None = None):
     print("Validation complete")
 
     if compress_format:
-        new_directory = directory + "_validated"
-        shutil.make_archive(new_directory, compress_format, new_directory)
+        new_directory = str(directory) + "_validated"
+        shutil.make_archive(
+            new_directory,
+            format=compress_format,
+            root_dir=directory,
+        )
         shutil.rmtree(directory)
         print(f"Validated files saved as {new_directory}.{compress_format}")
 
