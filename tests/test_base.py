@@ -1,7 +1,7 @@
 from fhirflat.resources.encounter import Encounter
 import pandas as pd
 import pytest
-from pydantic import ValidationError
+from pydantic.v1 import ValidationError
 
 
 def test_validate_fhirflat_single_resource_errors():
