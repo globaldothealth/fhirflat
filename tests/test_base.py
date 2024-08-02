@@ -3,6 +3,7 @@ import fhirflat
 import pandas as pd
 import pytest
 from pydantic.v1 import ValidationError
+from pathlib import Path
 
 
 def test_flat_fields():
@@ -22,6 +23,23 @@ def test_flat_fields():
         "generalPractitioner",
         "managingOrganization",
     ]
+
+
+def test_to_flat_no_filename():
+    PATIENT_DICT_INPUT = {
+        "id": "f001",
+        "active": True,
+        "name": [{"text": "Micky Mouse"}],
+        "gender": "male",
+        "deceasedBoolean": False,
+        "address": [{"country": "Switzerland"}],
+        "birthDate": "1996-05-30",
+    }
+
+    p = fhirflat.Patient(**PATIENT_DICT_INPUT)
+    flat_p = p.to_flat()
+
+    assert isinstance(flat_p, pd.Series)
 
 
 def test_validate_fhirflat_single_resource_errors():
