@@ -1,15 +1,22 @@
 # Utility functions for FHIRflat
+from __future__ import annotations
+
 import datetime
 import importlib
 import re
 from collections.abc import KeysView
 from itertools import groupby
+from typing import TYPE_CHECKING
 
 import fhir.resources
 import numpy as np
+import pandas as pd
 
 import fhirflat
 from fhirflat.resources import extensions
+
+if TYPE_CHECKING:
+    from .resources.base import FHIRFlatBase
 
 
 def group_keys(data_keys: list[str] | KeysView) -> dict[str, list[str]]:
@@ -79,7 +86,9 @@ def get_local_resource(t: str, case_insensitive: bool = False):
                 return getattr(fhirflat, a)
 
 
-def find_data_class(data_class, k):
+def find_data_class(
+    data_class: FHIRFlatBase | list[FHIRFlatBase], k: str
+) -> FHIRFlatBase:
     """
     Finds the type class for item k within the data class.
 
@@ -116,7 +125,7 @@ def find_data_class(data_class, k):
         return get_fhirtype(base_class)
 
 
-def code_or_codeable_concept(col_name, resource):
+def code_or_codeable_concept(col_name: str, resource: FHIRFlatBase) -> bool:
     search_terms = col_name.split(".")
     fhir_type = find_data_class(resource, search_terms[0])
 
@@ -138,7 +147,7 @@ def code_or_codeable_concept(col_name, resource):
         return code_or_codeable_concept(".".join(search_terms[1:]), fhir_type)
 
 
-def format_flat(flat_df, resource):
+def format_flat(flat_df: pd.DataFrame, resource: FHIRFlatBase) -> pd.DataFrame:
     """
     Performs formatting on dates/lists in FHIRflat resources.
     """
@@ -177,7 +186,7 @@ def format_flat(flat_df, resource):
     return flat_df
 
 
-def condense_codes(row, code_col):
+def condense_codes(row: pd.Series, code_col: str) -> pd.Series:
     raw_codes = row[(code_col + ".code")]
     if isinstance(raw_codes, (str, int, float)) and raw_codes == raw_codes:
         formatted_code = (

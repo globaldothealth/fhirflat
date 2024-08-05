@@ -8,7 +8,12 @@ from fhir.resources.period import Period
 from fhir.resources.quantity import Quantity
 from pydantic.v1.error_wrappers import ValidationError
 
-from .util import find_data_class, get_fhirtype, get_local_extension_type, group_keys
+from .util import (
+    find_data_class,
+    get_fhirtype,
+    get_local_extension_type,
+    group_keys,
+)
 
 
 def create_codeable_concept(
@@ -16,7 +21,7 @@ def create_codeable_concept(
 ) -> dict[str, list[str]]:
     """Re-creates a codeableConcept structure from the FHIRflat representation."""
 
-    # for reading in from ingestion pipeline
+    # for creating backbone elements
     if name + ".code" in old_dict and name + ".system" in old_dict:
         raw_codes: str | float | list[str | None] = old_dict.get(name + ".code")
         if raw_codes is not None and not isinstance(raw_codes, list):
@@ -24,7 +29,7 @@ def create_codeable_concept(
                 raw_codes if isinstance(raw_codes, str) else str(int(raw_codes))
             )
             codes = [old_dict[name + ".system"] + "|" + formatted_code]
-        elif raw_codes is None:
+        elif not raw_codes:
             codes = raw_codes
         else:
             formatted_codes = [
