@@ -28,3 +28,45 @@ The equivalent function to the CLI described above can be used as
 ```
 fhirflat.convert_data_to_flat("data_file_path", "sheet_id", "%Y-%m-%d", "Brazil/East")
 ```
+
+## Conversion without validation
+
+If you wish to convert your data into FHIRflat, but not perform validation to check the
+converted data conforms to the FHIR spec, you can add the `--no-validate` flag:
+
+```bash
+fhirflat transform data-file google-sheet-id date-format timezone-name --no-validate
+```
+
+The equivalent library function is
+```python
+fhirflat.convert_data_to_flat(<data_file_path>, <sheet_id>, <date_format>, <timezone>, validate=False)
+```
+
+We strongly recommend you don't do this unless necessary for time constraints; some
+errors in conversion can cause the parquet file to fail to save (e.g. if columns contain
+mixed types due to errors which would be caught during validation).
+
+Data which is already in a FHIRflat format can be validated against the schema using
+
+```bash
+fhirflat validate <folder_name>
+```
+
+where `folder_name` is the path to the folder containing your flat files. The files **must**
+be named according to the corresponding FHIR resource, e.g. the folder containing flat
+Encounter data must be named `encounter.parquet`.
+
+The folder can be provided in a compressed format, e.g. zipped; you can specifiy this
+using
+```bash
+fhirflat validate <folder_name> -c "zip"
+```
+
+The output folder of validated data will be compressed using the same format.
+
+The equivalent library function is
+
+```python
+fhirflat.validate(<folder_name>, compress_format="zip")
+```

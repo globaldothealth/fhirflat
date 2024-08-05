@@ -1059,7 +1059,8 @@ def test_convert_data_to_flat_local_mapping_zipped():
     os.remove("tests/ingestion_output.zip")
 
 
-# This don't run intermittantly - because of the "#NAME" error i get with the googele sheets
+# This doesn't run intermittantly - because of the "#NAME" error i get with the google
+# sheets
 # Turns out this is an issue with custom functions in Google Sheets, not a Python thing.
 def test_main(capsys, monkeypatch):
     # Simulate command line arguments
