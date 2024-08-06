@@ -3,7 +3,14 @@ from __future__ import annotations
 from typing import ClassVar, TypeAlias, Union
 
 from fhir.resources import fhirtypes
-from fhir.resources.patient import Patient as _Patient
+from fhir.resources.patient import (
+    Patient as _Patient,
+)
+from fhir.resources.patient import (
+    PatientCommunication,
+    PatientContact,
+    PatientLink,
+)
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
@@ -41,6 +48,12 @@ class Patient(_Patient, FHIRFlatBase):
         "contact",
         "communication",
         "link",
+    }
+
+    backbone_elements: ClassVar[dict] = {
+        "contact": PatientContact,
+        "communication": PatientCommunication,
+        "link": PatientLink,
     }
 
     @validator("extension")

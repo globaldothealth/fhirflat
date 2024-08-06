@@ -5,6 +5,10 @@ from typing import ClassVar, TypeAlias
 from fhir.resources.medicationadministration import (
     MedicationAdministration as _MedicationAdministration,
 )
+from fhir.resources.medicationadministration import (
+    MedicationAdministrationDosage,
+    MedicationAdministrationPerformer,
+)
 
 from .base import FHIRFlatBase
 
@@ -23,6 +27,11 @@ class MedicationAdministration(_MedicationAdministration, FHIRFlatBase):
 
     # required attributes that are not present in the FHIRflat representation
     flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {
+        "performer": MedicationAdministrationPerformer,
+        "dosage": MedicationAdministrationDosage,
+    }
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:
