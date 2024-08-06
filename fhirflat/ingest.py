@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from pyarrow.lib import ArrowTypeError
 
 import fhirflat
@@ -349,6 +350,7 @@ def create_dictionary(
     if not one_to_one:
         filtered_data = filtered_data.reset_index()
         melted_data = filtered_data.melt(id_vars="index", var_name="column")
+        melted_data.dropna(subset=["value"], inplace=True)
 
     # set up the mappings -------------------------------------------------------
 
@@ -440,6 +442,7 @@ def convert_data_to_flat(
     subject_id="subjid",
     validate: bool = True,
     compress_format: None | str = None,
+    parallel: bool = False,
 ):
     """
     Takes raw clinical data (currently assumed to be a one-row-per-patient format like
@@ -471,6 +474,8 @@ def convert_data_to_flat(
         Whether to validate the FHIRflat files after creation.
     compress_format: optional str
         If the output folder should be zipped, and if so with what format.
+    parallel: bool
+        Whether to parallelize the conversion process.
     """
 
     if not mapping_files_types and not sheet_id:
@@ -501,39 +506,36 @@ def convert_data_to_flat(
             for r, i in sheet_keys.items()
         }
 
-    for resource, map_file in mappings.items():
+    def convert_resource(
+        resource, data, map_file, t, subject_id, date_format, timezone
+    ):
         start_time = timeit.default_timer()
-        t = types[resource.__name__]
-        if t == "one-to-one":
+        o2o = True if t == "one-to-one" else False
+
+        if t in ["one-to-one", "one-to-many"]:
             df = create_dictionary(
                 data,
                 map_file,
                 resource.__name__,
-                one_to_one=True,
+                one_to_one=o2o,
                 subject_id=subject_id,
                 date_format=date_format,
                 timezone=timezone,
             )
             if df is None:
-                continue
-        elif t == "one-to-many":
-            df = create_dictionary(
-                data,
-                map_file,
-                resource.__name__,
-                one_to_one=False,
-                subject_id=subject_id,
-                date_format=date_format,
-                timezone=timezone,
-            )
-            if df is None:
-                continue
-            else:
-                df = df.dropna().reset_index(drop=True)
+                return None
         else:
             raise ValueError(f"Unknown mapping type {t}")
 
+        dict_time = timeit.default_timer()
+        print(
+            f"creates {resource.__name__} dictionary in " + str(dict_time - start_time)
+        )
+
         flat_nonvalidated = resource.ingest_to_flat(df)
+
+        ingest_time = timeit.default_timer()
+        print(f"{resource.__name__} ingestion in " + str(ingest_time - dict_time))
 
         if validate:
             valid_flat, errors = resource.validate_fhirflat(flat_nonvalidated)
@@ -555,7 +557,10 @@ def convert_data_to_flat(
                     UserWarning,
                     stacklevel=2,
                 )
-                continue
+                return None
+
+        valid_time = timeit.default_timer()
+        print(f"{resource.__name__} validation in " + str(valid_time - dict_time))
 
         end_time = timeit.default_timer()
         total_time = end_time - start_time
@@ -573,6 +578,35 @@ def convert_data_to_flat(
                 f"{error_length} resources not created due to validation errors. "
                 f"Errors saved to {resource.__name__.lower()}_errors.csv"
             )
+
+    if parallel:
+        total_t = timeit.default_timer()
+        _ = Parallel(n_jobs=-1)(
+            delayed(convert_resource)(
+                resource,
+                data,
+                map_file,
+                types[resource.__name__],
+                subject_id,
+                date_format,
+                timezone,
+            )
+            for resource, map_file in mappings.items()
+        )
+    else:
+        total_t = timeit.default_timer()
+        for resource, map_file in mappings.items():
+            convert_resource(
+                resource,
+                data,
+                map_file,
+                types[resource.__name__],
+                subject_id,
+                date_format,
+                timezone,
+            )
+
+    print(f"Total time: {timeit.default_timer() - total_t}")
 
     write_metadata(*generate_metadata(folder_name), Path(folder_name) / "fhirflat.toml")
     if compress_format:

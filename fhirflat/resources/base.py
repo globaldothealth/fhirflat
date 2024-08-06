@@ -119,9 +119,10 @@ class FHIRFlatBase(_DomainResource):
 
         flat_df = df.copy()
 
-        flat_df["fhir"] = flat_df.apply(
+        fhir_json = flat_df.apply(
             lambda row: row.to_json(date_format="iso", date_unit="s"), axis=1
-        ).apply(lambda x: cls.create_fhir_resource(x))
+        )
+        flat_df["fhir"] = fhir_json.apply(lambda x: cls.create_fhir_resource(x))
 
         if len(flat_df) == 1 and return_frames is False:
             resource = flat_df["fhir"].iloc[0]
