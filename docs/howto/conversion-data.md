@@ -60,7 +60,7 @@ Encounter data must be named `encounter.parquet`.
 The folder can be provided in a compressed format, e.g. zipped; you can specifiy this
 using
 ```bash
-fhirflat validate <folder_name> -c "zip"
+fhirflat validate <file_name> -c "zip"
 ```
 
 The output folder of validated data will be compressed using the same format.
@@ -68,5 +68,5 @@ The output folder of validated data will be compressed using the same format.
 The equivalent library function is
 
 ```python
-fhirflat.validate(<folder_name>, compress_format="zip")
+fhirflat.validate(<file_name>, compress_format="zip")
 ```
