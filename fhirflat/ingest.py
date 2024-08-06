@@ -585,9 +585,16 @@ def validate(folder_name: str, compress_format: str | None = None):
     Takes a folder containing (optionally compressed) FHIRflat files and validates them
     against the FHIR. File names **must** correspond to the FHIR resource types they
     represent. E.g. a file containing Patient resources must be named "patient.parquet".
+
+    Parameters
+    ----------
+    folder_name
+        The path to the folder containing the FHIRflat files, or compressed file.
+    compress_format
+        The format to compress the validated files into.
     """
 
-    if compress_format:
+    if Path(folder_name).is_file():
         directory = Path(folder_name).with_suffix("")
         shutil.unpack_archive(folder_name, extract_dir=directory)
     else:
@@ -694,7 +701,7 @@ def validate_cli():
     parser.add_argument(
         "-c",
         "--compress_format",
-        help="Format the folder is compressed in",
+        help="Format to compress the output into",
         choices=["zip", "tar", "gztar", "bztar", "xztar"],
     )
 
