@@ -125,12 +125,11 @@ def find_data_class(
         return get_fhirtype(base_class)
 
 
-def code_or_codeable_concept(col_name: str, resource: FHIRFlatBase) -> bool:
+def code_or_codeable_concept(
+    col_name: str, resource: FHIRFlatBase | list[FHIRFlatBase]
+) -> bool:
     search_terms = col_name.split(".")
     fhir_type = find_data_class(resource, search_terms[0])
-
-    if isinstance(fhir_type, list):
-        return code_or_codeable_concept(".".join(search_terms[1:]), fhir_type)
 
     if len(search_terms) == 2:  # e.g. "code.code", "age.code"
         schema = fhir_type.schema()["properties"]

@@ -598,7 +598,7 @@ def validate(folder_name: str, compress_format: str | None = None):
         resource = file.stem
         resource_type = get_local_resource(resource, case_insensitive=True)
 
-        valid_flat, errors = resource_type.validate_fhirflat(df, return_files=True)
+        valid_flat, errors = resource_type.validate_fhirflat(df, return_frames=True)
 
         if errors is not None:
 
