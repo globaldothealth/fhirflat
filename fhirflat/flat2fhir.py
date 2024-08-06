@@ -6,10 +6,10 @@ from fhir.resources.domainresource import DomainResource as _DomainResource
 from fhir.resources.fhirprimitiveextension import FHIRPrimitiveExtension
 from fhir.resources.period import Period
 from fhir.resources.quantity import Quantity
-from pydantic.v1 import BaseModel
 from pydantic.v1.error_wrappers import ValidationError
 
 from .util import (
+    find_data_class,
     get_fhirtype,
     get_local_extension_type,
     group_keys,
@@ -21,7 +21,7 @@ def create_codeable_concept(
 ) -> dict[str, list[str]]:
     """Re-creates a codeableConcept structure from the FHIRflat representation."""
 
-    # for reading in from ingestion pipeline
+    # for creating backbone elements
     if name + ".code" in old_dict and name + ".system" in old_dict:
         raw_codes: str | float | list[str | None] = old_dict.get(name + ".code")
         if raw_codes is not None and not isinstance(raw_codes, list):
@@ -29,7 +29,7 @@ def create_codeable_concept(
                 raw_codes if isinstance(raw_codes, str) else str(int(raw_codes))
             )
             codes = [old_dict[name + ".system"] + "|" + formatted_code]
-        elif raw_codes is None:
+        elif not raw_codes:
             codes = raw_codes
         else:
             formatted_codes = [
@@ -174,48 +174,12 @@ def set_datatypes(k, v_dict, klass) -> dict:
     return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
 
 
-def find_data_class(data_class: list[BaseModel] | BaseModel, k: str) -> BaseModel:
-    """
-    Finds the type class for item k within the data class.
-
-    Parameters
-    ----------
-    data_class: list[BaseModel] or BaseModel
-        The data class to search within. If a list, the function will search for the
-        a class with a matching title to k.
-    k: str
-        The property to search for within the data class
-    """
-
-    if isinstance(data_class, list):
-        title_matches = [k.lower() == c.schema()["title"].lower() for c in data_class]
-        result = [x for x, y in zip(data_class, title_matches, strict=True) if y]
-        if len(result) == 1:
-            return get_fhirtype(k)
-        else:
-            raise ValueError(f"Couldn't find a matching class for {k} in {data_class}")
-
-    else:
-        k_schema = data_class.schema()["properties"].get(k)
-
-        base_class = (
-            k_schema.get("items").get("type")
-            if k_schema.get("items") is not None
-            else k_schema.get("type")
-        )
-
-        if base_class is None:
-            assert k_schema.get("type") == "array"
-
-            base_class = [opt.get("type") for opt in k_schema["items"]["anyOf"]]
-        return get_fhirtype(base_class)
-
-
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
     """
     Combines columns containing flattened FHIR concepts back into
     JSON-like structures.
     """
+
     groups = group_keys(data.keys())
     group_classes = {}
 

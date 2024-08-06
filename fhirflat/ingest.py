@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 import dateutil.parser
 import numpy as np
 import pandas as pd
+from pyarrow.lib import ArrowTypeError
 
 import fhirflat
 from fhirflat.util import get_local_resource, group_keys
@@ -437,6 +438,7 @@ def convert_data_to_flat(
     mapping_files_types: tuple[dict, dict] | None = None,
     sheet_id: str | None = None,
     subject_id="subjid",
+    validate: bool = True,
     compress_format: None | str = None,
 ):
     """
@@ -465,12 +467,21 @@ def convert_data_to_flat(
         be named by resource, and contain the mapping for that resource.
     subject_id: str
         The name of the column containing the subject ID in the data file.
+    validate: bool
+        Whether to validate the FHIRflat files after creation.
     compress_format: optional str
         If the output folder should be zipped, and if so with what format.
     """
 
     if not mapping_files_types and not sheet_id:
         raise TypeError("Either mapping_files_types or sheet_id must be provided")
+
+    if not validate:
+        warnings.warn(
+            "Validation of the FHIRflat files has been disabled. ",
+            UserWarning,
+            stacklevel=2,
+        )
 
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -522,10 +533,29 @@ def convert_data_to_flat(
         else:
             raise ValueError(f"Unknown mapping type {t}")
 
-        errors = resource.ingest_to_flat(
-            df,
-            os.path.join(folder_name, resource.__name__.lower()),
-        )
+        flat_nonvalidated = resource.ingest_to_flat(df)
+
+        if validate:
+            valid_flat, errors = resource.validate_fhirflat(flat_nonvalidated)
+
+            valid_flat.to_parquet(
+                f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+            )
+        else:
+            errors = None
+            try:
+                flat_nonvalidated.to_parquet(
+                    f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
+                )
+            except ArrowTypeError as e:
+                warnings.warn(
+                    f"Error writing {resource.__name__.lower()}.parquet: {e}\n"
+                    "This is likely due to a validation error, re-run without "
+                    "--no-validate.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                continue
 
         end_time = timeit.default_timer()
         total_time = end_time - start_time
@@ -548,6 +578,60 @@ def convert_data_to_flat(
     if compress_format:
         shutil.make_archive(folder_name, compress_format, folder_name)
         shutil.rmtree(folder_name)
+
+
+def validate(folder_name: str, compress_format: str | None = None):
+    """
+    Takes a folder containing (optionally compressed) FHIRflat files and validates them
+    against the FHIR. File names **must** correspond to the FHIR resource types they
+    represent. E.g. a file containing Patient resources must be named "patient.parquet".
+
+    Parameters
+    ----------
+    folder_name
+        The path to the folder containing the FHIRflat files, or compressed file.
+    compress_format
+        The format to compress the validated files into.
+    """
+
+    if Path(folder_name).is_file():
+        directory = Path(folder_name).with_suffix("")
+        shutil.unpack_archive(folder_name, extract_dir=directory)
+    else:
+        directory = folder_name
+
+    for file in Path(directory).glob("*.parquet"):
+        df = pd.read_parquet(file)
+        resource = file.stem
+        resource_type = get_local_resource(resource, case_insensitive=True)
+
+        valid_flat, errors = resource_type.validate_fhirflat(df, return_frames=True)
+
+        if errors is not None:
+
+            valid_flat.to_parquet(os.path.join(directory, f"{resource}_valid.parquet"))
+            errors.to_csv(
+                os.path.join(directory, f"{resource}_errors.csv"), index=False
+            )
+            error_length = len(errors)
+            print(
+                f"{error_length} rows in {file.name} have validation errors. "
+                f"Errors saved to {resource}_errors.csv. "
+                f"Valid rows saved to {resource}_valid.parquet"
+            )
+        else:
+            print(f"{file.name} is valid")
+    print("Validation complete")
+
+    if compress_format:
+        new_directory = str(directory) + "_validated"
+        shutil.make_archive(
+            new_directory,
+            format=compress_format,
+            root_dir=directory,
+        )
+        shutil.rmtree(directory)
+        print(f"Validated files saved as {new_directory}.{compress_format}")
 
 
 def main():
@@ -580,6 +664,13 @@ def main():
     )
 
     parser.add_argument(
+        "--no-validate",
+        help="Do the data conversion without validation",
+        dest="validate",
+        action="store_false",
+    )
+
+    parser.add_argument(
         "-c",
         "--compress",
         help="Compress the output folder using this format",
@@ -595,7 +686,30 @@ def main():
         folder_name=args.output,
         sheet_id=args.sheet_id,
         subject_id=args.subject_id,
+        validate=args.validate,
         compress_format=args.compress,
+    )
+
+
+def validate_cli():
+    parser = argparse.ArgumentParser(
+        description="Validate FHIRflat parquet files against the FHIR schema",
+        prog="fhirflat validate",
+    )
+    parser.add_argument("folder", help="File path to folder containing FHIRflat files")
+
+    parser.add_argument(
+        "-c",
+        "--compress_format",
+        help="Format to compress the output into",
+        choices=["zip", "tar", "gztar", "bztar", "xztar"],
+    )
+
+    args = parser.parse_args()
+
+    validate(
+        args.folder,
+        compress_format=args.compress_format,
     )
 
 

@@ -115,19 +115,19 @@ def implode(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby(df.index).agg(single_or_list)
 
 
-def expandCoding(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+def condenseCoding(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     """
     Turns a column containing a list of dictionaries with coding information into
     2 columns containing a list of strings with the coding information, and the text.
 
     [ {"system": "http://loinc.org", "code": "1234", "display": "Test"} ]
     becomes
-    [ "http://loinc.org/1234" ], ["Test"]
+    [ "http://loinc.org|1234" ], ["Test"]
 
     If a "text" field has already been provided, this overrides the display.
     """
 
-    def expand(
+    def condense(
         row: pd.Series, column_name: str, text_present: bool = False
     ) -> pd.Series:
         codes = row[column_name]
@@ -148,7 +148,7 @@ def expandCoding(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     if column_name.removesuffix(".coding") + ".text" in df.columns:
         text_present = True
 
-    df = df.apply(lambda x: expand(x, column_name, text_present), axis=1)
+    df = df.apply(lambda x: condense(x, column_name, text_present), axis=1)
 
     if not text_present:
         df.insert(
@@ -291,7 +291,7 @@ def fhir2flat(resource: FHIRFlatBase, lists: list | None = None) -> pd.DataFrame
 
     # expand all instances of the "coding" list
     for coding in df.columns[df.columns.str.endswith("coding")]:
-        df = expandCoding(df, coding)
+        df = condenseCoding(df, coding)
 
     # condense all references
     for reference in df.columns[df.columns.str.endswith("reference")]:
