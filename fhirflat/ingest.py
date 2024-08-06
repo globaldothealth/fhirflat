@@ -451,31 +451,31 @@ def convert_data_to_flat(
 
     Parameters
     ----------
-    data: str
+    data
         The path to the raw clinical data file.
-    date_format: str
+    date_format
         The format of the dates in the data file. E.g. "%Y-%m-%d"
-    timezone: str
+    timezone
         The timezone of the dates in the data file. E.g. "Europe/London"
-    folder_name: str
+    folder_name
         The name of the folder to store the FHIRflat files.
-    mapping_files_types: tuple[dict, dict] | None
+    mapping_files_types
         A tuple containing two dictionaries, one with the mapping files for each
         resource type and one with the mapping type (either one-to-one or one-to-many)
         for each resource type.
-    sheet_id: str | None
+    sheet_id
         The Google Sheet ID containing the mapping files. The first sheet must contain
         the mapping types - one column listing the resource name, and another describing
         whether the mapping is one-to-one or one-to-many. The subsequent sheets must
         be named by resource, and contain the mapping for that resource.
-    subject_id: str
+    subject_id
         The name of the column containing the subject ID in the data file.
-    validate: bool
+    validate
         Whether to validate the FHIRflat files after creation.
-    compress_format: optional str
+    compress_format
         If the output folder should be zipped, and if so with what format.
-    parallel: bool
-        Whether to parallelize the conversion process.
+    parallel
+        Whether to parallelize the data conversion over different resources.
     """
 
     if not mapping_files_types and not sheet_id:
@@ -711,6 +711,13 @@ def main():
         choices=["zip", "tar", "gztar", "bztar", "xztar"],
     )
 
+    parser.add_argument(
+        "-p",
+        "--parallel",
+        help="Parallelize the data conversion over different reosurces",
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
     convert_data_to_flat(
@@ -722,6 +729,7 @@ def main():
         subject_id=args.subject_id,
         validate=args.validate,
         compress_format=args.compress,
+        parallel=args.parallel,
     )
 
 
