@@ -455,29 +455,31 @@ def convert_data_to_flat(
 
     Parameters
     ----------
-    data: str
+    data
         The path to the raw clinical data file.
-    date_format: str
+    date_format
         The format of the dates in the data file. E.g. "%Y-%m-%d"
-    timezone: str
+    timezone
         The timezone of the dates in the data file. E.g. "Europe/London"
-    folder_name: str
+    folder_name
         The name of the folder to store the FHIRflat files.
-    mapping_files_types: tuple[dict, dict] | None
+    mapping_files_types
         A tuple containing two dictionaries, one with the mapping files for each
         resource type and one with the mapping type (either one-to-one or one-to-many)
         for each resource type.
-    sheet_id: str | None
+    sheet_id
         The Google Sheet ID containing the mapping files. The first sheet must contain
         the mapping types - one column listing the resource name, and another describing
         whether the mapping is one-to-one or one-to-many. The subsequent sheets must
         be named by resource, and contain the mapping for that resource.
-    subject_id: str
+    subject_id
         The name of the column containing the subject ID in the data file.
-    validate: bool
+    validate
         Whether to validate the FHIRflat files after creation.
-    compress_format: optional str
+    compress_format
         If the output folder should be zipped, and if so with what format.
+    parallel
+        Whether to parallelize the data conversion over different resources.
     """
 
     if not mapping_files_types and not sheet_id:
@@ -609,78 +611,6 @@ def convert_data_to_flat(
             )
     print("total time: " + str(timeit.default_timer() - total_t))
 
-    # for resource, map_file in mappings.items():
-    #     start_time = timeit.default_timer()
-    #     t = types[resource.__name__]
-    #     o2o = True if t == "one-to-one" else False
-
-    #     if t in ["one-to-one", "one-to-many"]:
-    #         df = create_dictionary(
-    #             data,
-    #             map_file,
-    #             resource.__name__,
-    #             one_to_one=o2o,
-    #             subject_id=subject_id,
-    #             date_format=date_format,
-    #             timezone=timezone,
-    #         )
-    #         if df is None:
-    #             continue
-    #         # elif o2o is False:
-    #         #     df = df.dropna().reset_index(drop=True)
-    #     else:
-    #         raise ValueError(f"Unknown mapping type {t}")
-
-    #     dict_time = timeit.default_timer()
-    #     print("creates dictionary in " + str(dict_time - start_time))
-
-    #     flat_nonvalidated = resource.ingest_to_flat(df)
-
-    #     ingest_time = timeit.default_timer()
-    #     print("ingestion in " + str(ingest_time - dict_time))
-
-    #     if validate:
-    #         valid_flat, errors = resource.validate_fhirflat(flat_nonvalidated)
-
-    #         valid_flat.to_parquet(
-    #             f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
-    #         )
-    #     else:
-    #         errors = None
-    #         try:
-    #             flat_nonvalidated.to_parquet(
-    #                 f"{os.path.join(folder_name, resource.__name__.lower())}.parquet"
-    #             )
-    #         except ArrowTypeError as e:
-    #             warnings.warn(
-    #                 f"Error writing {resource.__name__.lower()}.parquet: {e}\n"
-    #                 "This is likely due to a validation error, re-run without "
-    #                 "--no-validate.",
-    #                 UserWarning,
-    #                 stacklevel=2,
-    #             )
-    #             continue
-
-    #     valid_time = timeit.default_timer()
-    #     print("validation in " + str(valid_time - dict_time))
-
-    #     end_time = timeit.default_timer()
-    #     total_time = end_time - start_time
-    #     print(
-    #         f"{resource.__name__} took {total_time:.2f} seconds to convert"
-    #         f" {len(df)} rows. "
-    #     )
-    #     if errors is not None:
-    #         errors.to_csv(
-    #             os.path.join(folder_name, f"{resource.__name__.lower()}_errors.csv"),
-    #             index=False,
-    #         )
-    #         error_length = len(errors)
-    #         print(
-    #             f"{error_length} resources not created due to validation errors. "
-    #             f"Errors saved to {resource.__name__.lower()}_errors.csv"
-    #         )
-
     write_metadata(*generate_metadata(folder_name), Path(folder_name) / "fhirflat.toml")
     if compress_format:
         shutil.make_archive(folder_name, compress_format, folder_name)
@@ -784,6 +714,13 @@ def main():
         choices=["zip", "tar", "gztar", "bztar", "xztar"],
     )
 
+    parser.add_argument(
+        "-p",
+        "--parallel",
+        help="Parallelize the data conversion over different reosurces",
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
     convert_data_to_flat(
@@ -795,6 +732,7 @@ def main():
         subject_id=args.subject_id,
         validate=args.validate,
         compress_format=args.compress,
+        parallel=args.parallel,
     )
 
 
