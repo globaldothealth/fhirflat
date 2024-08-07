@@ -7,6 +7,8 @@ from fhir.resources.codeableconcept import CodeableConcept as _CodeableConcept
 from fhir.resources.quantity import Quantity as _Quantity
 from fhirflat.resources.extensions import (
     timingPhase,
+    timingDetail,
+    timingPhaseDetail,
     relativeDay,
     relativeStart,
     relativeEnd,
@@ -37,6 +39,74 @@ def test_timingPhase():
     assert timing_phase.resource_type == "timingPhase"
     assert timing_phase.url == "timingPhase"
     assert type(timing_phase.valueCodeableConcept) is _CodeableConcept
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {
+            "url": "timingDetail",
+            "valueCodeableConcept": {
+                "coding": [
+                    {
+                        "system": "http://snomed.info/sct",
+                        "code": "708353007",
+                        "display": "Since last encounter (qualifier value)",
+                    }
+                ]
+            },
+        },
+        {
+            "url": "timingDetail",
+            "valueRange": {
+                "low": {"value": -7, "unit": "days"},
+                "high": {"value": 0, "unit": "days"},
+            },
+        },
+        {"url": "timingDetail", "valueString": "Ever"},
+    ],
+)
+def test_timingDetail(data):
+    timing_detail = timingDetail(**data)
+    assert isinstance(timing_detail, DataType)
+    assert timing_detail.resource_type == "timingDetail"
+    assert timing_detail.url == "timingDetail"
+
+
+tpd_data = {
+    "url": "timingPhaseDetail",
+    "extension": [timing_phase_data, {"url": "timingDetail", "valueString": "Ever"}],
+}
+
+
+def test_timingPhaseDetail():
+    timing_phase_detail = timingPhaseDetail(**tpd_data)
+    assert isinstance(timing_phase_detail, DataType)
+    assert timing_phase_detail.resource_type == "timingPhaseDetail"
+    assert timing_phase_detail.url == "timingPhaseDetail"
+
+
+tpd_data_error = {
+    "url": "timingPhaseDetail",
+    "extension": [
+        timing_phase_data,
+        {"url": "timingDetail", "valueString": "Ever"},
+        {
+            "url": "timingDetail",
+            "valueRange": {
+                "low": {"value": -7, "unit": "days"},
+                "high": {"value": 0, "unit": "days"},
+            },
+        },
+    ],
+}
+
+
+def test_timingPhaseDetail_error():
+    with pytest.raises(
+        ValidationError, match="timingPhase and timingDetail can only appear once"
+    ):
+        _ = timingPhaseDetail(**tpd_data_error)
 
 
 rel_day = {"url": "relativeDay", "valueInteger": 3}

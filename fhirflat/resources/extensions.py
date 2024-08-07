@@ -62,6 +62,169 @@ class timingPhase(_DataType):
         ]
 
 
+class timingDetail(_DataType):
+    """
+    An ISARIC extension collecting more detail on the timingPhase. This is typically
+    means providing a range of days relative to the admission date (valueRange), noting
+    that this covers a period since the last encounter (valueCodeableConcept), or note
+    that this is for the last 12 months (valueString).
+
+    To denote a range **before** the timingPhase, use a negative number.
+    e.g. -1 to -3 would denote 1 to 3 days before the timingPhase.
+    """
+
+    resource_type: str = Field(default="timingDetail", const=True)
+
+    url: str = Field("timingDetail", const=True, alias="url")
+
+    valueRange: fhirtypes.RangeType = Field(
+        None,
+        alias="valueRange",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    valueCodeableConcept: fhirtypes.CodeableConceptType = Field(
+        None,
+        alias="valueCodeableConcept",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    valueString: fhirtypes.String = Field(
+        None,
+        alias="valueString",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    @classmethod
+    def elements_sequence(cls):
+        """returning all elements names from
+        ``Extension`` according specification,
+        with preserving original sequence order.
+        """
+        return [
+            "id",
+            "extension",
+            "url",
+            "valueRange",
+            "valueCodeableConcept",
+            "valueString",
+        ]
+
+    @root_validator(pre=True, allow_reuse=True)
+    def validate_one_of_many_1136(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """https://www.hl7.org/fhir/formats.html#choice
+        A few elements have a choice of more than one data type for their content.
+        All such elements have a name that takes the form nnn[x].
+        The "nnn" part of the name is constant, and the "[x]" is replaced with
+        the title-cased name of the type that is actually used.
+        The table view shows each of these names explicitly.
+
+        Elements that have a choice of data type cannot repeat - they must have a
+        maximum cardinality of 1. When constructing an instance of an element with a
+        choice of types, the authoring system must create a single element with a
+        data type chosen from among the list of permitted data types.
+        """
+        one_of_many_fields = {
+            "value": [
+                "valueRange",
+                "valueCodeableConcept",
+                "valueString",
+            ]
+        }
+        for prefix, fields in one_of_many_fields.items():
+            assert cls.__fields__[fields[0]].field_info.extra["one_of_many"] == prefix
+            required = (
+                cls.__fields__[fields[0]].field_info.extra["one_of_many_required"]
+                is True
+            )
+            found = False
+            for field in fields:
+                if field in values and values[field] is not None:
+                    if found is True:
+                        raise ValueError(
+                            "Any of one field value is expected from "
+                            f"this list {fields}, but got multiple!"
+                        )
+                    else:
+                        found = True
+            if required is True and found is False:
+                raise ValueError(f"Expect any of field value from this list {fields}.")
+
+        return values
+
+
+class timingPhaseDetail(_DataType):
+    """
+    An ISARIC extension collecting data on the phase of admission an event occurred.
+    This combines the `timingPhase`, `timingDetail` and `timingPoint` to bundle the
+    responses relative to eachother.
+    """
+
+    resource_type: str = Field(default="timingPhaseDetail", const=True)
+
+    url: str = Field("timingPhaseDetail", const=True, alias="url")
+
+    extension: list[Union[et.timingPhaseType, et.timingDetailType]] = Field(
+        None,
+        alias="extension",
+        title="List of `Extension` items (represented as `dict` in JSON)",
+        description="Additional content defined by implementations",
+        # if property is element of this resource.
+        element_property=True,
+        # this trys to match the type of the object to each of the union types
+        union_mode="smart",
+    )
+
+    @validator("extension")
+    def validate_extension_contents(cls, extensions):
+        time_count = sum(isinstance(item, timingPhase) for item in extensions)
+        detail_count = sum(isinstance(item, timingDetail) for item in extensions)
+
+        if time_count > 1 or detail_count > 1:
+            raise ValueError("timingPhase and timingDetail can only appear once.")
+
+        return extensions
+
+    @classmethod
+    def elements_sequence(cls):
+        """returning all elements names from
+        ``Extension`` according specification,
+        with preserving original sequence order.
+        """
+        return [
+            "id",
+            "extension",
+            "url",
+        ]
+
+
 class relativeDay(_DataType):
     """
     An ISARIC extension recording the day an event occurred relative to the admission

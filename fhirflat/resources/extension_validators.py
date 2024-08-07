@@ -56,6 +56,8 @@ class Validators:
     def __init__(self):
         self.MODEL_CLASSES = {
             "timingPhase": (None, ".extensions"),
+            "timingDetail": (None, ".extensions"),
+            "timingPhaseDetail": (None, ".extensions"),
             "relativeDay": (None, ".extensions"),
             "relativeStart": (None, ".extensions"),
             "relativeEnd": (None, ".extensions"),
@@ -200,6 +202,14 @@ class Validators:
 
 def timingphase_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
     return Validators().fhir_model_validator("timingPhase", v)
+
+
+def timingdetail_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+    return Validators().fhir_model_validator("timingDetail", v)
+
+
+def timingphasedetail_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+    return Validators().fhir_model_validator("timingPhaseDetail", v)
 
 
 def relativeday_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
