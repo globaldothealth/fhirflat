@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Union
 
+from fhir.resources import fhirtypes
 from fhir.resources.diagnosticreport import (
     DiagnosticReport as _DiagnosticReport,
 )
@@ -9,13 +10,31 @@ from fhir.resources.diagnosticreport import (
     DiagnosticReportMedia,
     DiagnosticReportSupportingInfo,
 )
+from pydantic.v1 import Field, validator
 
 from fhirflat.flat2fhir import expand_concepts
 
 from .base import FHIRFlatBase
+from .extension_types import timingPhaseType
+from .extensions import timingPhase
 
 
 class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
+    extension: list[Union[timingPhaseType, fhirtypes.ExtensionType]] = Field(
+        None,
+        alias="extension",
+        title="List of `Extension` items (represented as `dict` in JSON)",
+        description=(
+            """
+            Contains the Global.health 'timingPhase' extension,
+            and allows extensions from other implementations to be included.
+            """
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # this trys to match the type of the object to each of the union types
+        union_mode="smart",
+    )
 
     # attributes to exclude from the flat representation
     flat_exclusions: ClassVar[set[str]] = FHIRFlatBase.flat_exclusions | {
@@ -29,6 +48,15 @@ class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
         "supportingInfo": DiagnosticReportSupportingInfo,
         "media": DiagnosticReportMedia,
     }
+
+    @validator("extension")
+    def validate_extension_contents(cls, extensions):
+        tim_phase_count = sum(isinstance(item, timingPhase) for item in extensions)
+
+        if tim_phase_count > 1:
+            raise ValueError("timingPhase can only appear once.")
+
+        return extensions
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:
