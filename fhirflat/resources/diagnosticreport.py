@@ -15,12 +15,14 @@ from pydantic.v1 import Field, validator
 from fhirflat.flat2fhir import expand_concepts
 
 from .base import FHIRFlatBase
-from .extension_types import timingPhaseType
-from .extensions import timingPhase
+from .extension_types import timingPhaseDetailType, timingPhaseType
+from .extensions import timingPhase, timingPhaseDetail
 
 
 class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
-    extension: list[Union[timingPhaseType, fhirtypes.ExtensionType]] = Field(
+    extension: list[
+        Union[timingPhaseType, timingPhaseDetailType, fhirtypes.ExtensionType]
+    ] = Field(
         None,
         alias="extension",
         title="List of `Extension` items (represented as `dict` in JSON)",
@@ -51,10 +53,19 @@ class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
 
     @validator("extension")
     def validate_extension_contents(cls, extensions):
-        tim_phase_count = sum(isinstance(item, timingPhase) for item in extensions)
+        timing_count = sum(isinstance(item, timingPhase) for item in extensions)
+        detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
 
-        if tim_phase_count > 1:
+        if timing_count > 1:
             raise ValueError("timingPhase can only appear once.")
+
+        if detail_count > 1:
+            raise ValueError("timingPhaseDetail can only appear once.")
+
+        if timing_count > 0 and detail_count > 0:
+            raise ValueError(
+                "timingPhase and timingPhaseDetail cannot appear together."
+            )
 
         return extensions
 

@@ -220,7 +220,7 @@ def test_immunization_from_flat():
 
 
 def test_immunization_extension_validation_error():
-    with pytest.raises(ValueError, match="timingPhase can only appear once."):
+    with pytest.raises(ValueError, match="can only appear once."):
         Immunization(
             **{
                 "id": 2,

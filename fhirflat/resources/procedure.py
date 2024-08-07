@@ -11,9 +11,10 @@ from .extension_types import (
     dateTimeExtensionType,
     durationType,
     relativePeriodType,
+    timingPhaseDetailType,
     timingPhaseType,
 )
-from .extensions import Duration, relativePeriod, timingPhase
+from .extensions import Duration, relativePeriod, timingPhase, timingPhaseDetail
 
 JsonString: TypeAlias = str
 
@@ -21,7 +22,11 @@ JsonString: TypeAlias = str
 class Procedure(_Procedure, FHIRFlatBase):
     extension: list[
         Union[
-            durationType, timingPhaseType, relativePeriodType, fhirtypes.ExtensionType
+            durationType,
+            timingPhaseType,
+            timingPhaseDetailType,
+            relativePeriodType,
+            fhirtypes.ExtensionType,
         ]
     ] = Field(
         None,
@@ -29,8 +34,9 @@ class Procedure(_Procedure, FHIRFlatBase):
         title="Additional content defined by implementations",
         description=(
             """
-            Contains the G.H 'timingPhase', 'relativePeriod' and 'duration' extensions,
-            and allows extensions from other implementations to be included."""
+            Contains the G.H 'timingPhase', 'timingPhaseDetail', 'relativePeriod' and
+             'duration' extensions, and allows extensions from other implementations to
+             be included."""
         ),
         # if property is element of this resource.
         element_property=True,
@@ -68,10 +74,16 @@ class Procedure(_Procedure, FHIRFlatBase):
         duration_count = sum(isinstance(item, Duration) for item in extensions)
         tim_phase_count = sum(isinstance(item, timingPhase) for item in extensions)
         rel_phase_count = sum(isinstance(item, relativePeriod) for item in extensions)
+        detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
 
         if duration_count > 1 or tim_phase_count > 1 or rel_phase_count > 1:
             raise ValueError(
-                "duration, timingPhase and relativePeriod can only appear once."
+                "duration, timingPhase, timingPhaseDetail and relativePeriod can only appear once."  # noqa E501
+            )
+
+        if tim_phase_count > 0 and detail_count > 0:
+            raise ValueError(
+                "timingPhase and timingPhaseDetail cannot appear together."
             )
 
         return extensions
