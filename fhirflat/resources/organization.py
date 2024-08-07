@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, TypeAlias
 
-from fhir.resources.organization import Organization as _Organization
+from fhir.resources.organization import (
+    Organization as _Organization,
+)
+from fhir.resources.organization import (
+    OrganizationQualification,
+)
 
 from .base import FHIRFlatBase
 
@@ -17,6 +22,8 @@ class Organization(_Organization, FHIRFlatBase):
         "active",
         "contact",  # phone numbers, addresses
     }
+
+    backbone_elements: ClassVar[dict] = {"qualification": OrganizationQualification}
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:

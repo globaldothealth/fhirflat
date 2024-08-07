@@ -4,6 +4,7 @@ from typing import ClassVar, TypeAlias, Union
 
 from fhir.resources import fhirtypes
 from fhir.resources.condition import Condition as _Condition
+from fhir.resources.condition import ConditionParticipant, ConditionStage
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
@@ -45,6 +46,11 @@ class Condition(_Condition, FHIRFlatBase):
         "evidence",
         "note",
         "participant",
+    }
+
+    backbone_elements: ClassVar[dict] = {
+        "participant": ConditionParticipant,
+        "stage": ConditionStage,
     }
 
     # required attributes that are not present in the FHIRflat representation

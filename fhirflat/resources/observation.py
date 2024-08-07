@@ -4,7 +4,13 @@ from typing import ClassVar, TypeAlias, Union
 
 from fhir.resources import fhirtypes
 from fhir.resources.observation import Observation as _Observation
-from fhir.resources.observation import ObservationComponent as _ObservationComponent
+from fhir.resources.observation import (
+    ObservationComponent as _ObservationComponent,
+)
+from fhir.resources.observation import (
+    ObservationReferenceRange,
+    ObservationTriggeredBy,
+)
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
@@ -79,6 +85,12 @@ class Observation(_Observation, FHIRFlatBase):
 
     # required attributes that are not present in the FHIRflat representation
     flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {
+        "triggeredBy": ObservationTriggeredBy,
+        "referenceRange": ObservationReferenceRange,
+        "component": _ObservationComponent,
+    }
 
     @validator("extension")
     def validate_extension_contents(cls, extensions):

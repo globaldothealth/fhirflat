@@ -1038,6 +1038,29 @@ def test_convert_data_to_flat_local_mapping():
     shutil.rmtree(output_folder)
 
 
+def test_convert_data_to_flat_local_mapping_parallel():
+    output_folder = "tests/ingestion_output"
+    mappings = {
+        Encounter: "tests/dummy_data/encounter_dummy_mapping.csv",
+        Observation: "tests/dummy_data/observation_dummy_mapping.csv",
+    }
+    resource_types = {"Encounter": "one-to-one", "Observation": "one-to-many"}
+
+    convert_data_to_flat(
+        "tests/dummy_data/combined_dummy_data.csv",
+        folder_name=output_folder,
+        date_format="%Y-%m-%d",
+        timezone="Brazil/East",
+        mapping_files_types=(mappings, resource_types),
+        parallel=True,
+    )
+
+    assert os.path.exists("tests/ingestion_output/encounter.parquet")
+    assert os.path.exists("tests/ingestion_output/observation.parquet")
+
+    shutil.rmtree(output_folder)
+
+
 def test_convert_data_to_flat_local_mapping_zipped():
     output_folder = "tests/ingestion_output"
     mappings = {

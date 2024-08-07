@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar, TypeAlias
 
-from fhir.resources.researchsubject import ResearchSubject as _ResearchSubject
+from fhir.resources.researchsubject import (
+    ResearchSubject as _ResearchSubject,
+)
+from fhir.resources.researchsubject import (
+    ResearchSubjectProgress,
+)
 
 from .base import FHIRFlatBase
 
@@ -18,6 +23,8 @@ class ResearchSubject(_ResearchSubject, FHIRFlatBase):
 
     # required attributes that are not present in the FHIRflat representation
     flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {"progress": ResearchSubjectProgress}
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:

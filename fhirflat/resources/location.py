@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import ClassVar, TypeAlias
 
 from fhir.resources.location import Location as _Location
+from fhir.resources.location import LocationPosition
 
 from .base import FHIRFlatBase
 
@@ -18,6 +19,8 @@ class Location(_Location, FHIRFlatBase):
         "contact",  # phone numbers, addresses,
         "hoursOfOperation",
     }
+
+    backbone_elements: ClassVar[dict] = {"position": LocationPosition}
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:

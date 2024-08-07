@@ -3,7 +3,13 @@ from __future__ import annotations
 from typing import ClassVar, TypeAlias, Union
 
 from fhir.resources import fhirtypes
-from fhir.resources.procedure import Procedure as _Procedure
+from fhir.resources.procedure import (
+    Procedure as _Procedure,
+)
+from fhir.resources.procedure import (
+    ProcedureFocalDevice,
+    ProcedurePerformer,
+)
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
@@ -62,6 +68,11 @@ class Procedure(_Procedure, FHIRFlatBase):
 
     # required attributes that are not present in the FHIRflat representation
     flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {
+        "performer": ProcedurePerformer,
+        "focalDevice": ProcedureFocalDevice,
+    }
 
     @validator("extension")
     def validate_extension_contents(cls, extensions):
