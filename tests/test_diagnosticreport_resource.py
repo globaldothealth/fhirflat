@@ -15,6 +15,14 @@ DICT_INPUT = {
             "value": "nr1239044",
         }
     ],
+    "extension": [
+        {
+            "url": "timingPhase",
+            "valueCodeableConcept": {
+                "coding": [{"system": "timing.com", "code": "1234"}]
+            },
+        },
+    ],
     "basedOn": [{"reference": "ServiceRequest/req"}],
     "status": "final",
     "category": [
@@ -89,11 +97,21 @@ FLAT = {
     "code.code": ["http://loinc.org|58410-2"],
     "code.text": ["Complete blood count (hemogram) panel - Blood by Automated count"],
     "subject": "Patient/f001",
+    "extension.timingPhase.code": "timing.com|1234",
+    "extension.timingPhase.text": None,
 }
 
 DICT_OUT = {
     "resourceType": "DiagnosticReport",
     "id": "f001",
+    "extension": [
+        {
+            "url": "timingPhase",
+            "valueCodeableConcept": {
+                "coding": [{"system": "timing.com", "code": "1234"}]
+            },
+        },
+    ],
     "basedOn": [{"reference": "ServiceRequest/req"}],
     "status": "final",
     "category": [
