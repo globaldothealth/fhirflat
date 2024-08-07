@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from fhir.resources.diagnosticreport import DiagnosticReport as _DiagnosticReport
+from fhir.resources.diagnosticreport import (
+    DiagnosticReport as _DiagnosticReport,
+)
+from fhir.resources.diagnosticreport import (
+    DiagnosticReportMedia,
+    DiagnosticReportSupportingInfo,
+)
 
 from fhirflat.flat2fhir import expand_concepts
 
@@ -10,8 +16,19 @@ from .base import FHIRFlatBase
 
 
 class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
+
     # attributes to exclude from the flat representation
-    flat_exclusions: ClassVar[set[str]] = FHIRFlatBase.flat_exclusions | {"status"}
+    flat_exclusions: ClassVar[set[str]] = FHIRFlatBase.flat_exclusions | {
+        "identifier",
+    }
+
+    # required attributes that are not present in the FHIRflat representation
+    flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {
+        "supportingInfo": DiagnosticReportSupportingInfo,
+        "media": DiagnosticReportMedia,
+    }
 
     @classmethod
     def cleanup(cls, data: dict) -> dict:

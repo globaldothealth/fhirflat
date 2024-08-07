@@ -22,6 +22,7 @@ from .patient import Patient
 from .procedure import Procedure
 from .researchsubject import ResearchSubject
 from .specimen import Specimen
+from .diagnosticreport import DiagnosticReport
 
 __all__ = [
     "Condition",
@@ -36,4 +37,5 @@ __all__ = [
     "Procedure",
     "ResearchSubject",
     "Specimen",
+    "DiagnosticReport",
 ]

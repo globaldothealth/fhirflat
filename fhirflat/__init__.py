@@ -16,9 +16,10 @@ from .resources import (
     Procedure,
     ResearchSubject,
     Specimen,
+    DiagnosticReport,
 )
-from .ingest import convert_data_to_flat
+from .ingest import convert_data_to_flat, validate
 
 # Update this when bumping version in pyproject.toml!
 __version__ = "0.1.0"
-__all__ = ["convert_data_to_flat"]
+__all__ = ["convert_data_to_flat", "validate"]
