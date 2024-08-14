@@ -18,10 +18,31 @@ from pydantic.v1 import Field, root_validator, validator
 
 from . import extension_types as et
 
+# --------- base local extension type ---------------
+
+
+class _ISARICExtension(_DataType):
+    """
+    Base class for all ISARIC extensions.
+    """
+
+    resource_type: str = Field(default="ISARICExtension", const=True)
+
+    url: str = Field(None, alias="url", title="URI of the extension", const=True)
+
+    @classmethod
+    def elements_sequence(cls):
+        """returning all elements names from
+        ``Extension`` according specification,
+        with preserving original sequence order.
+        """
+        return ["id", "extension", "url"]
+
+
 # --------- extensions ------------------------------
 
 
-class timingPhase(_DataType):
+class timingPhase(_ISARICExtension):
     """
     An ISARIC extension collecting data on the phase of admission an event occurred.
     This is typically one of:
@@ -62,7 +83,7 @@ class timingPhase(_DataType):
         ]
 
 
-class timingDetail(_DataType):
+class timingDetail(_ISARICExtension):
     """
     An ISARIC extension collecting more detail on the timingPhase. This is typically
     means providing a range of days relative to the admission date (valueRange), noting
@@ -180,7 +201,7 @@ class timingDetail(_DataType):
         return values
 
 
-class timingPhaseDetail(_DataType):
+class timingPhaseDetail(_ISARICExtension):
     """
     An ISARIC extension collecting data on the phase of admission an event occurred.
     This combines the `timingPhase`, `timingDetail` and `timingPoint` to bundle the
@@ -212,20 +233,8 @@ class timingPhaseDetail(_DataType):
 
         return extensions
 
-    @classmethod
-    def elements_sequence(cls):
-        """returning all elements names from
-        ``Extension`` according specification,
-        with preserving original sequence order.
-        """
-        return [
-            "id",
-            "extension",
-            "url",
-        ]
 
-
-class relativeDay(_DataType):
+class relativeDay(_ISARICExtension):
     """
     An ISARIC extension recording the day an event occurred relative to the admission
     date. For a resources such as Encounter or Procedure, use relativePeriod to record
@@ -263,7 +272,7 @@ class relativeDay(_DataType):
         ]
 
 
-class relativeStart(_DataType):
+class relativeStart(_ISARICExtension):
     """
     An ISARIC extension for use inside the complex `relativePeriod` extension.
     """
@@ -299,7 +308,7 @@ class relativeStart(_DataType):
         ]
 
 
-class relativeEnd(_DataType):
+class relativeEnd(_ISARICExtension):
     """
     An ISARIC extension for use inside the complex `relativePeriod` extension.
     """
@@ -335,7 +344,7 @@ class relativeEnd(_DataType):
         ]
 
 
-class relativePeriod(_DataType):
+class relativePeriod(_ISARICExtension):
     """
     An ISARIC extension recording the start and end dates an event occurred relative to
     the admission date.
@@ -373,20 +382,8 @@ class relativePeriod(_DataType):
 
         return extensions
 
-    @classmethod
-    def elements_sequence(cls):
-        """returning all elements names from
-        ``Extension`` according specification,
-        with preserving original sequence order.
-        """
-        return [
-            "id",
-            "extension",
-            "url",
-        ]
 
-
-class approximateDate(_DataType):
+class approximateDate(_ISARICExtension):
     """
     An ISARIC extension for recording the approximate date (if the true date is unknown)
     or timeframe of an event.
@@ -479,7 +476,7 @@ class approximateDate(_DataType):
         return values
 
 
-class Duration(_DataType):
+class Duration(_ISARICExtension):
     """
     An ISARIC extension for recording the length of an event (e.g. 5 days) where
     duration is not an option in the base FHIR specification.
@@ -516,7 +513,7 @@ class Duration(_DataType):
         ]
 
 
-class Age(_DataType):
+class Age(_ISARICExtension):
     """
     An ISARIC extension collecting data on the age of a patient.
     """
@@ -552,7 +549,7 @@ class Age(_DataType):
         ]
 
 
-class birthSex(_DataType):
+class birthSex(_ISARICExtension):
     """
     An ISARIC extension collecting data on the birth sex of a patient.
     """
@@ -588,7 +585,7 @@ class birthSex(_DataType):
         ]
 
 
-class Race(_DataType):
+class Race(_ISARICExtension):
     """
     An ISARIC extension collecting data on the race of a patient.
     """
@@ -624,7 +621,7 @@ class Race(_DataType):
         ]
 
 
-class presenceAbsence(_DataType):
+class presenceAbsence(_ISARICExtension):
     """
     An ISARIC extension to indicate if a clinical finding is present, absent or unknown.
     """
@@ -660,7 +657,7 @@ class presenceAbsence(_DataType):
         ]
 
 
-class prespecifiedQuery(_DataType):
+class prespecifiedQuery(_ISARICExtension):
     """
     An ISARIC extension to indicate if a finding is the result of a prespecified query.
     """

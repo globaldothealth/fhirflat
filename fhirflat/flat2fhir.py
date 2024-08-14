@@ -1,15 +1,14 @@
 # Converts FHIRflat files into FHIR resources
-from fhir.resources.backbonetype import BackboneType as _BackboneType
 from fhir.resources.codeableconcept import CodeableConcept
-from fhir.resources.datatype import DataType as _DataType
 from fhir.resources.domainresource import DomainResource as _DomainResource
 from fhir.resources.fhirprimitiveextension import FHIRPrimitiveExtension
 from fhir.resources.period import Period
 from fhir.resources.quantity import Quantity
 from pydantic.v1.error_wrappers import ValidationError
 
+from .resources.extensions import _ISARICExtension
 from .util import (
-    find_data_class,
+    find_data_class_options,
     get_fhirtype,
     get_local_extension_type,
     group_keys,
@@ -103,7 +102,7 @@ def createQuantity(df, group):
     return quant
 
 
-def createExtension(exts: dict):
+def createExtension(exts: dict) -> list[dict]:
     """
     Searches through the schema of the extensions to find the correct datatype
 
@@ -114,6 +113,12 @@ def createExtension(exts: dict):
     Args:
     exts: dict
         e.g. {"relativeDay": 3, "approximateDate": "month 6"}
+
+    Returns
+       e.g. [
+                {'url': 'relativeDay', 'valueInteger': 3},
+                {'url': 'approximateDate', 'valueString': 'month 6'}
+            ]
     """
 
     extensions = []
@@ -138,6 +143,15 @@ def createExtension(exts: dict):
 
 
 def set_datatypes(k, v_dict, klass) -> dict:
+    """
+    k: "presenceAbsence"
+    v_dict: {
+                "presenceAbsence.code": ["SNOMED-CT|123456"],
+                "presenceAbsence.text": "Left arm"
+            }
+    klass: <CodeableConcept>
+    """
+
     if klass == Quantity:
         return createQuantity(v_dict, k)
     elif klass == CodeableConcept:
@@ -150,7 +164,7 @@ def set_datatypes(k, v_dict, klass) -> dict:
                 {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
             ),
         }
-    elif issubclass(klass, _DataType) and not issubclass(klass, _BackboneType):
+    elif issubclass(klass, _ISARICExtension):
         # not quite
         prop = klass.schema()["properties"]
         value_type = [key for key in prop.keys() if key.startswith("value")]
@@ -163,15 +177,76 @@ def set_datatypes(k, v_dict, klass) -> dict:
                 ),
             }
 
-        data_type = prop[value_type[0]]["type"]
+        elif len(value_type) == 1:
+            value_type = value_type[0]
+            data_type = prop[value_type]["type"]
+            try:
+                data_class = get_fhirtype(data_type)
+                return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
+            except AttributeError:
+                # datatype should be a primitive
+                return {"url": k, f"{value_type}": v_dict[k]}
+
+        else:
+            # more than one possible value type
+            # if there's more than one, maybe re-arrange the dict using each value type
+            # and try to call expand_concepts again?
+            for v_type in value_type:
+                data_type = prop[v_type]["type"]
+                try:
+                    data_class = get_fhirtype(data_type)
+                    new_dict = v_dict[k]
+                    new_dict = expand_concepts(new_dict, data_class)
+                    # do some kind of check that the new_dict is the right type
+                    try:
+                        data_class(**new_dict)
+                        # return {f"{k}.value{data_type}": new_dict}
+                        return {k: {f"value{data_type}": new_dict}}
+                        # return {"url": k, f"{v_type}": new_dict}
+                    except ValidationError:
+                        continue
+                except AttributeError:
+                    # is this the right error?
+                    continue
+
+    return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
+
+
+def find_value_type(k: str, v_dict, klass):
+    prop = klass.schema()["properties"]
+    value_type = [key for key in prop.keys() if key.startswith("value")]
+
+    if len(value_type) == 1:
+        value_type = value_type[0]
+        data_type = prop[value_type]["type"]
         try:
             data_class = get_fhirtype(data_type)
-            return {"url": k, f"{value_type[0]}": set_datatypes(k, v_dict, data_class)}
+            return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
         except AttributeError:
             # datatype should be a primitive
             return {"url": k, f"{value_type[0]}": v_dict[k]}
 
-    return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
+    else:
+        # more than one possible value type
+        # if there's more than one, maybe re-arrange the dict using each value type
+        # and try to call expand_concepts again?
+        for v_type in value_type:
+            data_type = prop[v_type]["type"]
+            try:
+                data_class = get_fhirtype(data_type)
+                new_dict = v_dict[k]
+                new_dict = expand_concepts(new_dict, data_class)
+                # do some kind of check that the new_dict is the right type
+                try:
+                    data_class(**new_dict)
+                    # return {f"{k}.value{data_type}": new_dict}
+                    # return {k: {f"value{data_type}": new_dict}}
+                    return {"url": k, f"{v_type}": new_dict}
+                except ValidationError:
+                    continue
+            except AttributeError:
+                # is this the right error?
+                continue
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
@@ -184,20 +259,32 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
     group_classes = {}
 
     for k in groups.keys():
-        group_classes[k] = find_data_class(data_class, k)
+        group_classes[k] = find_data_class_options(data_class, k)
 
     expanded = {}
     keys_to_replace = []
+
     for k, v in groups.items():
+        is_single_fhir_extension = not isinstance(
+            group_classes[k], list
+        ) and issubclass(group_classes[k], _ISARICExtension)
         keys_to_replace += v
         v_dict = {k: data[k] for k in v}
+        # step into nested groups
         if any(s.count(".") > 1 for s in v):
-            # strip the outside group name
-            stripped_dict = {s.split(".", 1)[1]: v_dict[s] for s in v}
-            # call recursively
-            new_v_dict = expand_concepts(stripped_dict, data_class=group_classes[k])
-            # add outside group key back on
-            v_dict = {f"{k}." + old_k: v for old_k, v in new_v_dict.items()}
+            if not is_single_fhir_extension:
+                # strip the outside group name
+                stripped_dict = {s.split(".", 1)[1]: v_dict[s] for s in v}
+                # call recursively
+                new_v_dict = expand_concepts(stripped_dict, data_class=group_classes[k])
+                # add outside group key back on
+                v_dict = {f"{k}." + old_k: v for old_k, v in new_v_dict.items()}
+            elif is_single_fhir_extension:
+                stripped_dict = {s.split(".", 1)[1]: v_dict[s] for s in v}
+                new_v_dict = {k: stripped_dict}
+                # v_dict = set_datatypes(k, new_v_dict, group_classes[k])
+                expanded[k] = find_value_type(k, new_v_dict, group_classes[k])
+                continue
 
         if all(isinstance(v, dict) for v in v_dict.values()):
             # coming back out of nested recursion
@@ -214,7 +301,7 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
                 s.split(".", 1)[1]: non_dict_items[s] for s in non_dict_items.keys()
             }
             for k1, v1 in stripped_dict.items():
-                klass = find_data_class(group_classes[k], k1)
+                klass = find_data_class_options(group_classes[k], k1)
                 v_dict[k + "." + k1] = set_datatypes(k1, {k1: v1}, klass)
 
             expanded[k] = {s.split(".", 1)[1]: v_dict[s] for s in v_dict}

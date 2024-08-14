@@ -86,23 +86,23 @@ def get_local_resource(t: str, case_insensitive: bool = False):
                 return getattr(fhirflat, a)
 
 
-def find_data_class(
+def find_data_class_options(
     data_class: FHIRFlatBase | list[FHIRFlatBase], k: str
-) -> FHIRFlatBase:
+) -> FHIRFlatBase | list[FHIRFlatBase]:
     """
-    Finds the type class for item k within the data class.
+    Finds the type class(es) for item k within the data class.
 
     Parameters
     ----------
-    data_class: list[BaseModel] or BaseModel
+    data_class
         The data class to search within. If a list, the function will search for the
         a class with a matching title to k.
-    k: str
+    k
         The property to search for within the data class
     """
 
     if isinstance(data_class, list):
-        title_matches = [k.lower() == c.schema()["title"].lower() for c in data_class]
+        title_matches = [k.lower() == c.__name__.lower() for c in data_class]
         result = [x for x, y in zip(data_class, title_matches, strict=True) if y]
         if len(result) == 1:
             return get_fhirtype(k)
@@ -110,7 +110,10 @@ def find_data_class(
             raise ValueError(f"Couldn't find a matching class for {k} in {data_class}")
 
     else:
-        k_schema = data_class.schema()["properties"].get(k)
+        try:
+            k_schema = data_class.schema()["properties"][k]
+        except KeyError:
+            k_schema = data_class.schema()["properties"]["extension"]
 
         base_class = (
             k_schema.get("items").get("type")
@@ -122,6 +125,9 @@ def find_data_class(
             assert k_schema.get("type") == "array"
 
             base_class = [opt.get("type") for opt in k_schema["items"]["anyOf"]]
+
+            if k in base_class:
+                return get_fhirtype(k)
         return get_fhirtype(base_class)
 
 
@@ -129,7 +135,7 @@ def code_or_codeable_concept(
     col_name: str, resource: FHIRFlatBase | list[FHIRFlatBase]
 ) -> bool:
     search_terms = col_name.split(".")
-    fhir_type = find_data_class(resource, search_terms[0])
+    fhir_type = find_data_class_options(resource, search_terms[0])
 
     if len(search_terms) == 2:  # e.g. "code.code", "age.code"
         schema = fhir_type.schema()["properties"]

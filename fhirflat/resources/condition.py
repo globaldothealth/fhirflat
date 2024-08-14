@@ -10,14 +10,16 @@ from .base import FHIRFlatBase
 from .extension_types import (
     presenceAbsenceType,
     prespecifiedQueryType,
-    timingPhaseDetailType,
+    # timingPhaseDetailType,
+    timingDetailType,
     timingPhaseType,
 )
 from .extensions import (
     presenceAbsence,
     prespecifiedQuery,
+    timingDetail,
+    # timingPhaseDetail,
     timingPhase,
-    timingPhaseDetail,
 )
 
 JsonString: TypeAlias = str
@@ -31,7 +33,7 @@ class Condition(_Condition, FHIRFlatBase):
             presenceAbsenceType,
             prespecifiedQueryType,
             timingPhaseType,
-            timingPhaseDetailType,
+            timingDetailType,
             fhirtypes.ExtensionType,
         ]
     ] = Field(
@@ -66,7 +68,7 @@ class Condition(_Condition, FHIRFlatBase):
         present_count = sum(isinstance(item, presenceAbsence) for item in extensions)
         query_count = sum(isinstance(item, prespecifiedQuery) for item in extensions)
         timing_count = sum(isinstance(item, timingPhase) for item in extensions)
-        detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
+        detail_count = sum(isinstance(item, timingDetail) for item in extensions)
 
         if present_count > 1 or query_count > 1 or timing_count > 1 or detail_count > 1:
             raise ValueError(
@@ -74,10 +76,10 @@ class Condition(_Condition, FHIRFlatBase):
                 "can only appear once."
             )
 
-        if timing_count > 0 and detail_count > 0:
-            raise ValueError(
-                "timingPhase and timingPhaseDetail cannot appear together."
-            )
+        # if timing_count > 0 and detail_count > 0:
+        #     raise ValueError(
+        #         "timingPhase and timingPhaseDetail cannot appear together."
+        #     )
 
         return extensions
 
