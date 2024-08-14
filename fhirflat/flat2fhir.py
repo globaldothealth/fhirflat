@@ -165,7 +165,6 @@ def set_datatypes(k, v_dict, klass) -> dict:
             ),
         }
     elif issubclass(klass, _ISARICExtension):
-        # not quite
         prop = klass.schema()["properties"]
         value_type = [key for key in prop.keys() if key.startswith("value")]
         if not value_type:
@@ -177,37 +176,40 @@ def set_datatypes(k, v_dict, klass) -> dict:
                 ),
             }
 
-        elif len(value_type) == 1:
-            value_type = value_type[0]
-            data_type = prop[value_type]["type"]
-            try:
-                data_class = get_fhirtype(data_type)
-                return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
-            except AttributeError:
-                # datatype should be a primitive
-                return {"url": k, f"{value_type}": v_dict[k]}
+        assert (
+            len(value_type) == 1
+        ), "Multiple value options should have been filtered by this point"
+        # elif len(value_type) == 1:
+        value_type = value_type[0]
+        data_type = prop[value_type]["type"]
+        try:
+            data_class = get_fhirtype(data_type)
+            return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
+        except AttributeError:
+            # datatype should be a primitive
+            return {"url": k, f"{value_type}": v_dict[k]}
 
-        else:
-            # more than one possible value type
-            # if there's more than one, maybe re-arrange the dict using each value type
-            # and try to call expand_concepts again?
-            for v_type in value_type:
-                data_type = prop[v_type]["type"]
-                try:
-                    data_class = get_fhirtype(data_type)
-                    new_dict = v_dict[k]
-                    new_dict = expand_concepts(new_dict, data_class)
-                    # do some kind of check that the new_dict is the right type
-                    try:
-                        data_class(**new_dict)
-                        # return {f"{k}.value{data_type}": new_dict}
-                        return {k: {f"value{data_type}": new_dict}}
-                        # return {"url": k, f"{v_type}": new_dict}
-                    except ValidationError:
-                        continue
-                except AttributeError:
-                    # is this the right error?
-                    continue
+        # else:
+        #     # more than one possible value type
+        #     # if there's more than one, maybe re-arrange the dict using each value
+        #     # type and try to call expand_concepts again?
+        #     for v_type in value_type:
+        #         data_type = prop[v_type]["type"]
+        #         try:
+        #             data_class = get_fhirtype(data_type)
+        #             new_dict = v_dict[k]
+        #             new_dict = expand_concepts(new_dict, data_class)
+        #             # do some kind of check that the new_dict is the right type
+        #             try:
+        #                 data_class(**new_dict)
+        #                 # return {f"{k}.value{data_type}": new_dict}
+        #                 return {k: {f"value{data_type}": new_dict}}
+        #                 # return {"url": k, f"{v_type}": new_dict}
+        #             except ValidationError:
+        #                 continue
+        #         except AttributeError:
+        #             # is this the right error?
+        #             continue
 
     return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
 
@@ -215,6 +217,13 @@ def set_datatypes(k, v_dict, klass) -> dict:
 def find_value_type(k: str, v_dict, klass):
     prop = klass.schema()["properties"]
     value_type = [key for key in prop.keys() if key.startswith("value")]
+
+    if not value_type:
+        classes = find_data_class_options(klass, "extension")
+        return {
+            "url": k,
+            "extension": list(expand_concepts(v_dict[k], classes).values()),
+        }
 
     if len(value_type) == 1:
         value_type = value_type[0]
@@ -227,26 +236,19 @@ def find_value_type(k: str, v_dict, klass):
             return {"url": k, f"{value_type[0]}": v_dict[k]}
 
     else:
-        # more than one possible value type
-        # if there's more than one, maybe re-arrange the dict using each value type
-        # and try to call expand_concepts again?
         for v_type in value_type:
             data_type = prop[v_type]["type"]
             try:
                 data_class = get_fhirtype(data_type)
                 new_dict = v_dict[k]
                 new_dict = expand_concepts(new_dict, data_class)
-                # do some kind of check that the new_dict is the right type
                 try:
                     data_class(**new_dict)
-                    # return {f"{k}.value{data_type}": new_dict}
-                    # return {k: {f"value{data_type}": new_dict}}
                     return {"url": k, f"{v_type}": new_dict}
                 except ValidationError:
                     continue
-            except AttributeError:
-                # is this the right error?
-                continue
+            except AttributeError as e:
+                raise e
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
@@ -265,9 +267,11 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
     keys_to_replace = []
 
     for k, v in groups.items():
-        is_single_fhir_extension = not isinstance(
-            group_classes[k], list
-        ) and issubclass(group_classes[k], _ISARICExtension)
+        is_single_fhir_extension = (
+            not isinstance(group_classes[k], list)
+            and issubclass(group_classes[k], _ISARICExtension)
+            # and not group_classes[k].nested_extension
+        )
         keys_to_replace += v
         v_dict = {k: data[k] for k in v}
         # step into nested groups

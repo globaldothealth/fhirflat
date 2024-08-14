@@ -22,49 +22,49 @@ CONDITION_DICT_INPUT = {
             },
         },
         {"url": "prespecifiedQuery", "valueBoolean": True},
-        {
-            "url": "timingPhase",
-            "valueCodeableConcept": {
-                "coding": [
-                    {
-                        "system": "http://snomed.info/sct",
-                        "code": "281379000",
-                        "display": "pre-admission",
-                    }
-                ]
-            },
-        },
-        {
-            "url": "timingDetail",
-            "valueRange": {
-                "low": {"value": -7, "unit": "days"},
-                "high": {"value": 0, "unit": "days"},
-            },
-        },
         # {
-        #     "url": "timingPhaseDetail",
-        #     "extension": [
-        #         {
-        #             "url": "timingPhase",
-        #             "valueCodeableConcept": {
-        #                 "coding": [
-        #                     {
-        #                         "system": "http://snomed.info/sct",
-        #                         "code": "281379000",
-        #                         "display": "pre-admission",
-        #                     }
-        #                 ]
-        #             },
-        #         },
-        #         {
-        #             "url": "timingDetail",
-        #             "valueRange": {
-        #                 "low": {"value": -7, "unit": "days"},
-        #                 "high": {"value": 0, "unit": "days"},
-        #             },
-        #         },
-        #     ],
+        #     "url": "timingPhase",
+        #     "valueCodeableConcept": {
+        #         "coding": [
+        #             {
+        #                 "system": "http://snomed.info/sct",
+        #                 "code": "281379000",
+        #                 "display": "pre-admission",
+        #             }
+        #         ]
+        #     },
         # },
+        # {
+        #     "url": "timingDetail",
+        #     "valueRange": {
+        #         "low": {"value": -7, "unit": "days"},
+        #         "high": {"value": 0, "unit": "days"},
+        #     },
+        # },
+        {
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": "281379000",
+                                "display": "pre-admission",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "url": "timingDetail",
+                    "valueRange": {
+                        "low": {"value": -7, "unit": "days"},
+                        "high": {"value": 0, "unit": "days"},
+                    },
+                },
+            ],
+        },
     ],
     "identifier": [{"value": "12345"}],
     "clinicalStatus": {
@@ -153,12 +153,20 @@ CONDITION_FLAT = {
     "extension.presenceAbsence.code": ["http://snomed.info/sct|410605003"],
     "extension.presenceAbsence.text": ["Present"],
     "extension.prespecifiedQuery": True,
-    "extension.timingPhase.code": ["http://snomed.info/sct|281379000"],
-    "extension.timingPhase.text": ["pre-admission"],
-    "extension.timingDetail.low.value": -7,
-    "extension.timingDetail.low.unit": "days",
-    "extension.timingDetail.high.value": 0,
-    "extension.timingDetail.high.unit": "days",
+    # "extension.timingPhase.code": ["http://snomed.info/sct|281379000"],
+    # "extension.timingPhase.text": ["pre-admission"],
+    # "extension.timingDetail.low.value": -7,
+    # "extension.timingDetail.low.unit": "days",
+    # "extension.timingDetail.high.value": 0,
+    # "extension.timingDetail.high.unit": "days",
+    "extension.timingPhaseDetail.timingPhase.code": [
+        "http://snomed.info/sct|281379000"
+    ],
+    "extension.timingPhaseDetail.timingPhase.text": ["pre-admission"],
+    "extension.timingPhaseDetail.timingDetail.low.value": -7,
+    "extension.timingPhaseDetail.timingDetail.low.unit": "days",
+    "extension.timingPhaseDetail.timingDetail.high.value": 0,
+    "extension.timingPhaseDetail.timingDetail.high.unit": "days",
     "category.code": [
         "http://snomed.info/sct|55607006",
         "http://terminology.hl7.org/CodeSystem/condition-category|problem-list-item",  # noqa: E501
@@ -192,51 +200,49 @@ CONDITION_DICT_OUT = {
                 ]
             },
         },
-        {
-            "url": "timingDetail",
-            "valueRange": {
-                "low": {"value": -7, "unit": "days"},
-                "high": {"value": 0, "unit": "days"},
-            },
-        },
-        {
-            "url": "timingPhase",
-            "valueCodeableConcept": {
-                "coding": [
-                    {
-                        "system": "http://snomed.info/sct",
-                        "code": "281379000",
-                        "display": "pre-admission",
-                    }
-                ]
-            },
-        },
-        # {  # not sure why this one breaks but the relativePeriod one doesn't
-        #     # it's because it hits the nested group stepping when trying to find the
-        #     # extension types. Lack of 'valueRange' etc in names causes it to break
-        #     "url": "timingPhaseDetail",
-        #     "extension": [
-        #         {
-        #             "url": "timingPhase",
-        #             "valueCodeableConcept": {
-        #                 "coding": [
-        #                     {
-        #                         "system": "http://snomed.info/sct",
-        #                         "code": "281379000",
-        #                         "display": "pre-admission",
-        #                     }
-        #                 ]
-        #             },
-        #         },
-        #         {
-        #             "url": "timingDetail",
-        #             "valueRange": {
-        #                 "low": {"value": -7, "unit": "days"},
-        #                 "high": {"value": 0, "unit": "days"},
-        #             },
-        #         },
-        #     ],
+        # {
+        #     "url": "timingDetail",
+        #     "valueRange": {
+        #         "low": {"value": -7, "unit": "days"},
+        #         "high": {"value": 0, "unit": "days"},
+        #     },
         # },
+        # {
+        #     "url": "timingPhase",
+        #     "valueCodeableConcept": {
+        #         "coding": [
+        #             {
+        #                 "system": "http://snomed.info/sct",
+        #                 "code": "281379000",
+        #                 "display": "pre-admission",
+        #             }
+        #         ]
+        #     },
+        # },
+        {
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingDetail",
+                    "valueRange": {
+                        "low": {"value": -7, "unit": "days"},
+                        "high": {"value": 0, "unit": "days"},
+                    },
+                },
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": "281379000",
+                                "display": "pre-admission",
+                            }
+                        ]
+                    },
+                },
+            ],
+        },
     ],
     "clinicalStatus": {
         "coding": [

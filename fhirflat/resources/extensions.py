@@ -7,7 +7,7 @@ Extensions to the base `FHIR resources`_ package that are ISARIC specific.
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any, ClassVar, Union
 
 from fhir.resources import fhirtypes
 from fhir.resources.datatype import DataType as _DataType
@@ -29,6 +29,8 @@ class _ISARICExtension(_DataType):
     resource_type: str = Field(default="ISARICExtension", const=True)
 
     url: str = Field(None, alias="url", title="URI of the extension", const=True)
+
+    nested_extension: ClassVar[bool] = False
 
     @classmethod
     def elements_sequence(cls):
@@ -211,6 +213,8 @@ class timingPhaseDetail(_ISARICExtension):
     resource_type: str = Field(default="timingPhaseDetail", const=True)
 
     url: str = Field("timingPhaseDetail", const=True, alias="url")
+
+    nested_extension: ClassVar[bool] = True
 
     extension: list[Union[et.timingPhaseType, et.timingDetailType]] = Field(
         None,
