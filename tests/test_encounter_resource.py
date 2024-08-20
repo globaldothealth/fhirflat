@@ -425,3 +425,18 @@ def test_from_flat_validation_error_multi_resources():
     assert len(errors) == 1
     assert "invalid datetime format" in errors.iloc[0]["validation_error"]
     os.remove("encounter_errors.csv")
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "resourceType": "Encounter",
+        "id": "f203",
+        "status": "completed",
+    }
+    raises_phase_plus_detail_error(fhir_input, Encounter)
+    raises_phase_duplicate_error(fhir_input, Encounter)

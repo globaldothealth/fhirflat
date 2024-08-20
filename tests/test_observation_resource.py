@@ -3,6 +3,7 @@ from pandas.testing import assert_frame_equal
 import os
 from fhirflat.resources.observation import Observation
 import datetime
+import pytest
 
 # TODO: extra observation with a single component for travel.
 
@@ -382,3 +383,27 @@ def test_observation_from_flat():
     flat_bp = Observation.from_flat("tests/data/observation_flat.parquet")
 
     assert bp == flat_bp
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": {
+            "coding": [
+                {
+                    "system": "http://loinc.org",
+                    "code": "85354-9",
+                    "display": "Blood pressure panel with all children optional",
+                }
+            ],
+            "text": "Blood pressure systolic & diastolic",
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, Observation)
+    raises_phase_duplicate_error(fhir_input, Observation)

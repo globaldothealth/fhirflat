@@ -200,25 +200,6 @@ CONDITION_DICT_OUT = {
                 ]
             },
         },
-        # {
-        #     "url": "timingDetail",
-        #     "valueRange": {
-        #         "low": {"value": -7, "unit": "days"},
-        #         "high": {"value": 0, "unit": "days"},
-        #     },
-        # },
-        # {
-        #     "url": "timingPhase",
-        #     "valueCodeableConcept": {
-        #         "coding": [
-        #             {
-        #                 "system": "http://snomed.info/sct",
-        #                 "code": "281379000",
-        #                 "display": "pre-admission",
-        #             }
-        #         ]
-        #     },
-        # },
         {
             "url": "timingPhaseDetail",
             "extension": [
@@ -371,3 +352,25 @@ def test_condition_extension_validation_error():
 def test_from_flat_validation_error_single():
     with pytest.raises(ValidationError, match="1 validation error for Condition"):
         Condition.from_flat("tests/data/condition_flat_missing_subject.parquet")
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "id": "c201",
+        "subject": {"reference": "Patient/f201"},
+        "clinicalStatus": {
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",  # noqa: E501
+                    "code": "resolved",
+                }
+            ]
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, Condition)
+    raises_phase_duplicate_error(fhir_input, Condition)

@@ -76,7 +76,12 @@ class Procedure(_Procedure, FHIRFlatBase):
         rel_phase_count = sum(isinstance(item, relativePeriod) for item in extensions)
         detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
 
-        if duration_count > 1 or tim_phase_count > 1 or rel_phase_count > 1:
+        if (
+            duration_count > 1
+            or tim_phase_count > 1
+            or rel_phase_count > 1
+            or detail_count > 1
+        ):
             raise ValueError(
                 "duration, timingPhase, timingPhaseDetail and relativePeriod can only appear once."  # noqa E501
             )
