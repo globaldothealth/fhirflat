@@ -12,6 +12,7 @@ from .util import (
     get_fhirtype,
     get_local_extension_type,
     group_keys,
+    json_type_matching,
 )
 
 
@@ -189,28 +190,6 @@ def set_datatypes(k, v_dict, klass) -> dict:
             # datatype should be a primitive
             return {"url": k, f"{value_type}": v_dict[k]}
 
-        # else:
-        #     # more than one possible value type
-        #     # if there's more than one, maybe re-arrange the dict using each value
-        #     # type and try to call expand_concepts again?
-        #     for v_type in value_type:
-        #         data_type = prop[v_type]["type"]
-        #         try:
-        #             data_class = get_fhirtype(data_type)
-        #             new_dict = v_dict[k]
-        #             new_dict = expand_concepts(new_dict, data_class)
-        #             # do some kind of check that the new_dict is the right type
-        #             try:
-        #                 data_class(**new_dict)
-        #                 # return {f"{k}.value{data_type}": new_dict}
-        #                 return {k: {f"value{data_type}": new_dict}}
-        #                 # return {"url": k, f"{v_type}": new_dict}
-        #             except ValidationError:
-        #                 continue
-        #         except AttributeError:
-        #             # is this the right error?
-        #             continue
-
     return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
 
 
@@ -220,9 +199,21 @@ def find_value_type(k: str, v_dict, klass):
 
     if not value_type:
         classes = find_data_class_options(klass, "extension")
+        short_extensions = [s for s in v_dict[k].keys() if s.count(".") == 0]
+        expanded_short_extensions = []
+        if short_extensions:
+            # these get skipped over in expand_concepts so have to be dealt with here
+            for se in short_extensions:
+                short_ext_dict = {se: v_dict[k][se]}
+                short_ext = find_data_class_options(classes, se)
+                expanded_short_extensions.append(
+                    find_value_type(se, short_ext_dict, short_ext)
+                )
+                v_dict[k].pop(se)
         return {
             "url": k,
-            "extension": list(expand_concepts(v_dict[k], classes).values()),
+            "extension": list(expand_concepts(v_dict[k], classes).values())
+            + expanded_short_extensions,
         }
 
     if len(value_type) == 1:
@@ -241,14 +232,22 @@ def find_value_type(k: str, v_dict, klass):
             try:
                 data_class = get_fhirtype(data_type)
                 new_dict = v_dict[k]
-                new_dict = expand_concepts(new_dict, data_class)
+                new_dict = (
+                    expand_concepts(new_dict, data_class)
+                    if isinstance(new_dict, dict)
+                    else new_dict
+                )
                 try:
-                    data_class(**new_dict)
+                    data_class.parse_obj(new_dict)
                     return {"url": k, f"{v_type}": new_dict}
                 except ValidationError:
                     continue
             except AttributeError as e:
-                raise e
+                # should be a standard json type as a string
+                if isinstance(v_dict[k], json_type_matching(data_type)):
+                    return {"url": k, f"{v_type}": v_dict[k]}
+                else:
+                    raise e
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:

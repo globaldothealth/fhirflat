@@ -211,3 +211,20 @@ def condense_codes(row: pd.Series, code_col: str) -> pd.Series:
 
     row[code_col + ".code"] = codes
     return row
+
+
+def json_type_matching(t: str):
+    """
+    Matches a JSON type to a Python type.
+    """
+    tps = {
+        "string": str,
+        "integer": int,
+        "number": float,
+        "boolean": bool,
+        "array": list,
+        "object": dict,
+        "null": None,
+    }
+
+    return tps[t]
