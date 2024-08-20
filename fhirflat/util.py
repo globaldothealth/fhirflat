@@ -110,10 +110,7 @@ def find_data_class_options(
             raise ValueError(f"Couldn't find a matching class for {k} in {data_class}")
 
     else:
-        try:
-            k_schema = data_class.schema()["properties"][k]
-        except KeyError:
-            k_schema = data_class.schema()["properties"]["extension"]
+        k_schema = data_class.schema()["properties"][k]
 
         base_class = (
             k_schema.get("items").get("type")
@@ -126,8 +123,6 @@ def find_data_class_options(
 
             base_class = [opt.get("type") for opt in k_schema["items"]["anyOf"]]
 
-            if k in base_class:
-                return get_fhirtype(k)
         return get_fhirtype(base_class)
 
 

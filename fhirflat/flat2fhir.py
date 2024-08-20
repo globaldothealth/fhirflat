@@ -193,6 +193,9 @@ def set_datatypes(k, v_dict, klass) -> dict:
     return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
 
 
+# feels like there's a lot of duplication within the extension handling. Can we replace
+# 'createExtension' with 'find_value_type'/ reuse some of the code? bit wierd how it
+# jumps around so much.
 def find_value_type(k: str, v_dict, klass):
     prop = klass.schema()["properties"]
     value_type = [key for key in prop.keys() if key.startswith("value")]
@@ -216,38 +219,27 @@ def find_value_type(k: str, v_dict, klass):
             + expanded_short_extensions,
         }
 
-    if len(value_type) == 1:
-        value_type = value_type[0]
-        data_type = prop[value_type]["type"]
+    for v_type in value_type:
+        data_type = prop[v_type]["type"]
         try:
             data_class = get_fhirtype(data_type)
-            return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
-        except AttributeError:
-            # datatype should be a primitive
-            return {"url": k, f"{value_type[0]}": v_dict[k]}
-
-    else:
-        for v_type in value_type:
-            data_type = prop[v_type]["type"]
+            new_dict = v_dict[k]
+            new_dict = (
+                expand_concepts(new_dict, data_class)
+                if isinstance(new_dict, dict)
+                else new_dict
+            )
             try:
-                data_class = get_fhirtype(data_type)
-                new_dict = v_dict[k]
-                new_dict = (
-                    expand_concepts(new_dict, data_class)
-                    if isinstance(new_dict, dict)
-                    else new_dict
-                )
-                try:
-                    data_class.parse_obj(new_dict)
-                    return {"url": k, f"{v_type}": new_dict}
-                except ValidationError:
-                    continue
-            except AttributeError as e:
-                # should be a standard json type as a string
-                if isinstance(v_dict[k], json_type_matching(data_type)):
-                    return {"url": k, f"{v_type}": v_dict[k]}
-                else:
-                    raise e
+                data_class.parse_obj(new_dict)
+                return {"url": k, f"{v_type}": new_dict}
+            except ValidationError:
+                continue
+        except AttributeError as e:
+            # should be a standard json type as a string
+            if isinstance(v_dict[k], json_type_matching(data_type)):
+                return {"url": k, f"{v_type}": v_dict[k]}
+            else:
+                raise e
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
