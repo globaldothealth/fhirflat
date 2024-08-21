@@ -214,7 +214,7 @@ def json_type_matching(t: str):
     """
     tps = {
         "string": str,
-        "integer": int,
+        "integer": float,
         "number": float,
         "boolean": bool,
         "array": list,

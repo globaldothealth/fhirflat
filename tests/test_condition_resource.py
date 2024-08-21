@@ -22,25 +22,6 @@ CONDITION_DICT_INPUT = {
             },
         },
         {"url": "prespecifiedQuery", "valueBoolean": True},
-        # {
-        #     "url": "timingPhase",
-        #     "valueCodeableConcept": {
-        #         "coding": [
-        #             {
-        #                 "system": "http://snomed.info/sct",
-        #                 "code": "281379000",
-        #                 "display": "pre-admission",
-        #             }
-        #         ]
-        #     },
-        # },
-        # {
-        #     "url": "timingDetail",
-        #     "valueRange": {
-        #         "low": {"value": -7, "unit": "days"},
-        #         "high": {"value": 0, "unit": "days"},
-        #     },
-        # },
         {
             "url": "timingPhaseDetail",
             "extension": [
@@ -153,12 +134,6 @@ CONDITION_FLAT = {
     "extension.presenceAbsence.code": ["http://snomed.info/sct|410605003"],
     "extension.presenceAbsence.text": ["Present"],
     "extension.prespecifiedQuery": True,
-    # "extension.timingPhase.code": ["http://snomed.info/sct|281379000"],
-    # "extension.timingPhase.text": ["pre-admission"],
-    # "extension.timingDetail.low.value": -7,
-    # "extension.timingDetail.low.unit": "days",
-    # "extension.timingDetail.high.value": 0,
-    # "extension.timingDetail.high.unit": "days",
     "extension.timingPhaseDetail.timingPhase.code": [
         "http://snomed.info/sct|281379000"
     ],

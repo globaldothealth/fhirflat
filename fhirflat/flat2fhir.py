@@ -16,6 +16,22 @@ from .util import (
 )
 
 
+def step_down(data: dict) -> dict:
+    """
+    Splits column names on the first '.' to step 'down' one level into the nested data.
+
+    {
+    "timingPhaseDetail.timingPhase.code": ["http://snomed.info/sct|281379000"],
+    "timingPhaseDetail.timingPhase.text": ["pre-admission"],
+    }   ->
+            {
+            "timingPhase.code": ["http://snomed.info/sct|281379000"],
+            "timingPhase.text": ["pre-admission"],
+            }
+    """
+    return {s.split(".", 1)[1]: data[s] for s in data}
+
+
 def create_codeable_concept(
     old_dict: dict[str, list[str] | str | float | None], name: str
 ) -> dict[str, list[str]]:
@@ -103,44 +119,51 @@ def createQuantity(df, group):
     return quant
 
 
-def createExtension(exts: dict) -> list[dict]:
+def createSingleExtension(k, v) -> dict:
     """
-    Searches through the schema of the extensions to find the correct datatype
-
-    Covers the scenario where there is a list of extensions,e.g.
-    [{'type': 'approximateDate'}, {'type': 'relativeDay'}, {'type': 'Extension'}]
-    and finds the appropriate class for the data provided.
-
-    Args:
-    exts: dict
-        e.g. {"relativeDay": 3, "approximateDate": "month 6"}
-
-    Returns
-       e.g. [
-                {'url': 'relativeDay', 'valueInteger': 3},
-                {'url': 'approximateDate', 'valueString': 'month 6'}
-            ]
+    {"relativeDay": 3} -> {'url': 'relativeDay', 'valueInteger': 3}
     """
 
-    extensions = []
+    klass = get_local_extension_type(k)
 
-    extension_classes = {e: get_local_extension_type(e) for e in exts.keys()}
+    prop = klass.schema()["properties"]
+    value_type = [key for key in prop.keys() if key.startswith("value")]
 
-    for e, v in exts.items():
-        properties = extension_classes[e].schema()["properties"]
-        data_options = [key for key in properties.keys() if key.startswith("value")]
-        if len(data_options) == 1:
-            extensions.append({"url": e, data_options[0]: v})
-        else:
-            for opt in data_options:
+    if not value_type:
+        raise RuntimeError("Inappropriate entry into createSingleExtension")
+
+    for v_type in value_type:
+        data_type = prop[v_type]["type"]
+        try:
+            data_class = get_fhirtype(data_type)
+            # unpack coding etc
+            if isinstance(v, dict) and len(group_keys(v.keys())) > 1:
+                # if there are still groups to organise
+                new_dict = expand_concepts(v, data_class)
+            elif isinstance(v, dict):
+                # single group needs formatting, e.g. codeableConcepts as [url|code]
+                new_dict = set_datatypes(k, v, data_class)
+            else:
+                # standard json type
+                new_dict = v
+
+            try:
+                data_class.parse_obj(new_dict)
+                return {"url": k, f"{v_type}": new_dict}
+            except ValidationError:
+                continue
+        except AttributeError as e:
+            # should be a standard json type as a string
+            if isinstance(v, json_type_matching(data_type)):
                 try:
-                    extension_classes[e](**{opt: v})
-                    extensions.append({"url": e, opt: v})
-                    break
+                    klass.parse_obj({"url": k, f"{v_type}": v})
+                    return {"url": k, f"{v_type}": v}
                 except ValidationError:
                     continue
+            else:
+                raise e
 
-    return extensions
+    raise RuntimeError(f"extension not created from {k, v}")
 
 
 def set_datatypes(k, v_dict, klass) -> dict:
@@ -160,52 +183,36 @@ def set_datatypes(k, v_dict, klass) -> dict:
     elif klass == Period:
         return {"start": v_dict.get(k + ".start"), "end": v_dict.get(k + ".end")}
     elif issubclass(klass, FHIRPrimitiveExtension):
+        stripped_dict = step_down(v_dict)
         return {
-            "extension": createExtension(
-                {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
-            ),
+            "extension": [
+                createSingleExtension(ki, vi) for ki, vi in stripped_dict.items()
+            ],
         }
     elif issubclass(klass, _ISARICExtension):
-        prop = klass.schema()["properties"]
-        value_type = [key for key in prop.keys() if key.startswith("value")]
-        if not value_type:
+        if klass.nested_extension:
             # nested extension
+            stripped_dict = step_down(v_dict)
             return {
                 "url": k,
-                "extension": createExtension(
-                    {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
-                ),
+                "extension": [
+                    createSingleExtension(ki, vi) for ki, vi in stripped_dict.items()
+                ],
             }
 
-        assert (
-            len(value_type) == 1
-        ), "Multiple value options should have been filtered by this point"
-        # elif len(value_type) == 1:
-        value_type = value_type[0]
-        data_type = prop[value_type]["type"]
-        try:
-            data_class = get_fhirtype(data_type)
-            return {"url": k, f"{value_type}": set_datatypes(k, v_dict, data_class)}
-        except AttributeError:
-            # datatype should be a primitive
-            return {"url": k, f"{value_type}": v_dict[k]}
+        return createSingleExtension(k, v_dict if k not in v_dict else v_dict[k])
 
-    return {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
+    return step_down(v_dict)
 
 
-# feels like there's a lot of duplication within the extension handling. Can we replace
-# 'createExtension' with 'find_value_type'/ reuse some of the code? bit wierd how it
-# jumps around so much.
 def find_value_type(k: str, v_dict, klass):
-    prop = klass.schema()["properties"]
-    value_type = [key for key in prop.keys() if key.startswith("value")]
-
-    if not value_type:
+    if klass.nested_extension:
         classes = find_data_class_options(klass, "extension")
         short_extensions = [s for s in v_dict[k].keys() if s.count(".") == 0]
         expanded_short_extensions = []
         if short_extensions:
-            # these get skipped over in expand_concepts so have to be dealt with here
+            # these get skipped over in expand_concepts because they don't get grouped
+            # so have to be dealt with here
             for se in short_extensions:
                 short_ext_dict = {se: v_dict[k][se]}
                 short_ext = find_data_class_options(classes, se)
@@ -219,27 +226,7 @@ def find_value_type(k: str, v_dict, klass):
             + expanded_short_extensions,
         }
 
-    for v_type in value_type:
-        data_type = prop[v_type]["type"]
-        try:
-            data_class = get_fhirtype(data_type)
-            new_dict = v_dict[k]
-            new_dict = (
-                expand_concepts(new_dict, data_class)
-                if isinstance(new_dict, dict)
-                else new_dict
-            )
-            try:
-                data_class.parse_obj(new_dict)
-                return {"url": k, f"{v_type}": new_dict}
-            except ValidationError:
-                continue
-        except AttributeError as e:
-            # should be a standard json type as a string
-            if isinstance(v_dict[k], json_type_matching(data_type)):
-                return {"url": k, f"{v_type}": v_dict[k]}
-            else:
-                raise e
+    return createSingleExtension(k, v_dict if k not in v_dict else v_dict[k])
 
 
 def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> dict:
@@ -258,32 +245,30 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
     keys_to_replace = []
 
     for k, v in groups.items():
-        is_single_fhir_extension = (
-            not isinstance(group_classes[k], list)
-            and issubclass(group_classes[k], _ISARICExtension)
-            # and not group_classes[k].nested_extension
-        )
+        is_single_fhir_extension = not isinstance(
+            group_classes[k], list
+        ) and issubclass(group_classes[k], _ISARICExtension)
         keys_to_replace += v
         v_dict = {k: data[k] for k in v}
         # step into nested groups
         if any(s.count(".") > 1 for s in v):
+            # strip the outside group name
+            stripped_dict = step_down(v_dict)
             if not is_single_fhir_extension:
-                # strip the outside group name
-                stripped_dict = {s.split(".", 1)[1]: v_dict[s] for s in v}
                 # call recursively
                 new_v_dict = expand_concepts(stripped_dict, data_class=group_classes[k])
                 # add outside group key back on
                 v_dict = {f"{k}." + old_k: v for old_k, v in new_v_dict.items()}
             elif is_single_fhir_extension:
-                stripped_dict = {s.split(".", 1)[1]: v_dict[s] for s in v}
+                # column name will be missing one or more datatype layers, e.g.
+                # valueString, valueRange that need to be inferred
                 new_v_dict = {k: stripped_dict}
-                # v_dict = set_datatypes(k, new_v_dict, group_classes[k])
                 expanded[k] = find_value_type(k, new_v_dict, group_classes[k])
                 continue
 
         if all(isinstance(v, dict) for v in v_dict.values()):
             # coming back out of nested recursion
-            expanded[k] = {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
+            expanded[k] = step_down(v_dict)
 
         elif any(isinstance(v, dict) for v in v_dict.values()) and isinstance(
             group_classes[k], list
@@ -292,14 +277,12 @@ def expand_concepts(data: dict[str, str], data_class: type[_DomainResource]) -> 
             non_dict_items = {
                 k: v for k, v in v_dict.items() if not isinstance(v, dict)
             }
-            stripped_dict = {
-                s.split(".", 1)[1]: non_dict_items[s] for s in non_dict_items.keys()
-            }
+            stripped_dict = step_down(non_dict_items)
             for k1, v1 in stripped_dict.items():
                 klass = find_data_class_options(group_classes[k], k1)
                 v_dict[k + "." + k1] = set_datatypes(k1, {k1: v1}, klass)
 
-            expanded[k] = {s.split(".", 1)[1]: v_dict[s] for s in v_dict}
+            expanded[k] = step_down(v_dict)
 
         else:
             expanded[k] = set_datatypes(k, v_dict, group_classes[k])

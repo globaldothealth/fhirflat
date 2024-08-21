@@ -365,6 +365,8 @@ class relativePeriod(_ISARICExtension):
 
     url: str = Field("relativePeriod", const=True, alias="url")
 
+    nested_extension: ClassVar[bool] = True
+
     extension: list[Union[et.relativeStartType, et.relativeEndType]] = Field(
         None,
         alias="extension",
