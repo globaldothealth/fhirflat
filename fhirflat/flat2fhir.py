@@ -249,7 +249,7 @@ def create_single_extension(k: str, v: dict | str | float | bool) -> dict:
                 except ValidationError:
                     continue
             else:
-                raise e
+                raise e  # pragma: no cover
 
     raise RuntimeError(f"extension not created from {k, v}")  # pragma: no cover
 

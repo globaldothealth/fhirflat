@@ -236,8 +236,9 @@ def test_extension_name_error(ext_class, data):
         (approximateDate, {"valueDate": "2021-09", "valueString": "month 3"}),
         (Duration, {"valuePeriod": "middle"}),
         (dateTimeExtension, {"extension": [{"valueDate": "month 3"}]}),
+        (timingDetail, {"valueString": "ever", "valueRange": {}}),
     ],
 )
 def test_extension_validation_error(ext_class, data):
     with pytest.raises(ValidationError):
-        ext_class(**data)(**data)
+        ext_class(**data)
