@@ -146,10 +146,7 @@ def create_quantity(df: dict, group: str) -> dict:
     -------
     dict
         The FHIR representation of the quantity. E.g.,
-        {
-            "doseQuantity":
-                {"value": 5, "system": "http://unitsofmeasure.org", "code": "mg"}
-        }
+        {"value": 5, "system": "http://unitsofmeasure.org", "code": "mg"}
     """
 
     quant = {}
