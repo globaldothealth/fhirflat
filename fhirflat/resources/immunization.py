@@ -4,6 +4,12 @@ from typing import ClassVar, TypeAlias, Union
 
 from fhir.resources import fhirtypes
 from fhir.resources.immunization import Immunization as _Immunization
+from fhir.resources.immunization import (
+    ImmunizationPerformer,
+    ImmunizationProgramEligibility,
+    ImmunizationProtocolApplied,
+    ImmunizationReaction,
+)
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
@@ -53,6 +59,13 @@ class Immunization(_Immunization, FHIRFlatBase):
 
     # required attributes that are not present in the FHIRflat representation
     flat_defaults: ClassVar[list[str]] = [*FHIRFlatBase.flat_defaults, "status"]
+
+    backbone_elements: ClassVar[dict] = {
+        "performer": ImmunizationPerformer,
+        "programEligibility": ImmunizationProgramEligibility,
+        "reaction": ImmunizationReaction,
+        "protocolApplied": ImmunizationProtocolApplied,
+    }
 
     @validator("extension")
     def validate_extension_contents(cls, extensions):

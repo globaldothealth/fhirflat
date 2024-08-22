@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from typing import ClassVar, TypeAlias
 
-from fhir.resources.specimen import Specimen as _Specimen
+from fhir.resources.specimen import (
+    Specimen as _Specimen,
+)
+from fhir.resources.specimen import (
+    SpecimenCollection,
+    SpecimenContainer,
+    SpecimenFeature,
+    SpecimenProcessing,
+)
 
 from fhirflat.flat2fhir import expand_concepts
 
@@ -19,6 +27,13 @@ class Specimen(_Specimen, FHIRFlatBase):
         "accessionIdentifier",
         "status",
         "note",
+    }
+
+    backbone_elements: ClassVar[dict] = {
+        "feature": SpecimenFeature,
+        "collection": SpecimenCollection,
+        "processing": SpecimenProcessing,
+        "container": SpecimenContainer,
     }
 
     @classmethod

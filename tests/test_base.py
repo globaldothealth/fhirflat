@@ -3,7 +3,6 @@ import fhirflat
 import pandas as pd
 import pytest
 from pydantic.v1 import ValidationError
-from pathlib import Path
 
 
 def test_flat_fields():
