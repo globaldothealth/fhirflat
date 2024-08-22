@@ -510,7 +510,7 @@ def convert_data_to_flat(
         resource, data, map_file, t, subject_id, date_format, timezone
     ):
         start_time = timeit.default_timer()
-        o2o = True if t == "one-to-one" else False
+        o2o = t == "one-to-one"
 
         if t in ["one-to-one", "one-to-many"]:
             df = create_dictionary(
@@ -579,32 +579,19 @@ def convert_data_to_flat(
                 f"Errors saved to {resource.__name__.lower()}_errors.csv"
             )
 
-    if parallel:
-        total_t = timeit.default_timer()
-        _ = Parallel(n_jobs=-1)(
-            delayed(convert_resource)(
-                resource,
-                data,
-                map_file,
-                types[resource.__name__],
-                subject_id,
-                date_format,
-                timezone,
-            )
-            for resource, map_file in mappings.items()
+    total_t = timeit.default_timer()
+    _ = Parallel(n_jobs=-1 if parallel else 1)(
+        delayed(convert_resource)(
+            resource,
+            data,
+            map_file,
+            types[resource.__name__],
+            subject_id,
+            date_format,
+            timezone,
         )
-    else:
-        total_t = timeit.default_timer()
-        for resource, map_file in mappings.items():
-            convert_resource(
-                resource,
-                data,
-                map_file,
-                types[resource.__name__],
-                subject_id,
-                date_format,
-                timezone,
-            )
+        for resource, map_file in mappings.items()
+    )
 
     print(f"Total time: {timeit.default_timer() - total_t}")
 
