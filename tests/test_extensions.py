@@ -39,6 +39,7 @@ def test_timingPhase():
     assert timing_phase.resource_type == "timingPhase"
     assert timing_phase.url == "timingPhase"
     assert type(timing_phase.valueCodeableConcept) is _CodeableConcept
+    assert timing_phase.nested_extension is False
 
 
 @pytest.mark.parametrize(
@@ -84,6 +85,7 @@ def test_timingPhaseDetail():
     assert isinstance(timing_phase_detail, DataType)
     assert timing_phase_detail.resource_type == "timingPhaseDetail"
     assert timing_phase_detail.url == "timingPhaseDetail"
+    assert timing_phase_detail.nested_extension is True
 
 
 tpd_data_error = {
@@ -155,6 +157,7 @@ def test_relativePeriod():
         isinstance(ext, (relativeStart, relativeEnd))
         for ext in relative_phase.extension
     )
+    assert relative_phase.nested_extension is True
 
 
 @pytest.mark.parametrize(
