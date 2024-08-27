@@ -14,6 +14,7 @@ import pandas as pd
 
 import fhirflat
 from fhirflat.resources import extensions
+from fhirflat.resources.extensions import _ISARICExtension
 
 if TYPE_CHECKING:
     from .resources.base import FHIRFlatBase
@@ -47,17 +48,20 @@ def get_fhirtype(t: str | list[str]):
             return getattr(getattr(fhir.resources, t.lower()), t)
         except AttributeError:
             file_words = re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", t)
-            file = "".join(file_words[:-1]).lower()
+
+            for i in range(-1, (len(file_words) * -1), -1):
+                try:
+                    file = "".join(file_words[:i]).lower()
+                    return getattr(getattr(fhir.resources, file), t)
+                except AttributeError:
+                    continue
 
             try:
-                return getattr(getattr(fhir.resources, file), t)
-            except AttributeError:
-                try:
-                    module = importlib.import_module(f"fhir.resources.{t.lower()}")
-                    return getattr(module, t)
-                except (ImportError, ModuleNotFoundError) as e:
-                    # Handle the case where the module does not exist.
-                    raise AttributeError(f"Could not find {t} in fhir.resources") from e
+                module = importlib.import_module(f"fhir.resources.{t.lower()}")
+                return getattr(module, t)
+            except (ImportError, ModuleNotFoundError) as e:
+                # Handle the case where the module does not exist.
+                raise AttributeError(f"Could not find {t} in fhir.resources") from e
 
     else:
         return get_local_extension_type(t)
@@ -99,6 +103,10 @@ def find_data_class_options(
         a class with a matching title to k.
     k
         The property to search for within the data class
+
+    Returns
+    -------
+    The relevant FHIR class.
     """
 
     if isinstance(data_class, list):
@@ -126,11 +134,28 @@ def find_data_class_options(
         return get_fhirtype(base_class)
 
 
-def code_or_codeable_concept(
-    col_name: str, resource: FHIRFlatBase | list[FHIRFlatBase]
+def is_codeable_concept(
+    col_name: str, resource: FHIRFlatBase | list[FHIRFlatBase] | _ISARICExtension
 ) -> bool:
+    """
+    Determines if a column is a code or a codeable concept.
+    """
     search_terms = col_name.split(".")
-    fhir_type = find_data_class_options(resource, search_terms[0])
+
+    if not issubclass(
+        resource if not isinstance(resource, list) else type(str),
+        _ISARICExtension,
+    ):
+        fhir_type = find_data_class_options(resource, search_terms[0])
+
+    else:
+        prop = get_local_extension_type(search_terms[0]).schema()["properties"]
+        value_type = [key for key in prop.keys() if key.startswith("value")]
+        if len(value_type) == 1:
+            return True if "codeableconcept" in value_type[0].lower() else False
+        elif "valueCodeableConcept" in value_type:
+            # if longer it's a value with 'code' in it, e.g. Quantity.
+            return True if len(search_terms) == 2 else False
 
     if len(search_terms) == 2:  # e.g. "code.code", "age.code"
         schema = fhir_type.schema()["properties"]
@@ -144,7 +169,7 @@ def code_or_codeable_concept(
         else:
             return False
     else:
-        return code_or_codeable_concept(".".join(search_terms[1:]), fhir_type)
+        return is_codeable_concept(".".join(search_terms[1:]), fhir_type)
 
 
 def format_flat(flat_df: pd.DataFrame, resource: FHIRFlatBase) -> pd.DataFrame:
@@ -176,7 +201,7 @@ def format_flat(flat_df: pd.DataFrame, resource: FHIRFlatBase) -> pd.DataFrame:
         for x in flat_df.columns
         if (
             (x.lower().endswith(".code") or x.lower().endswith(".text"))
-            and code_or_codeable_concept(x, resource)
+            and is_codeable_concept(x, resource)
         )
     ]:
         flat_df[coding_column] = flat_df[coding_column].apply(

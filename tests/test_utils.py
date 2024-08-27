@@ -11,6 +11,7 @@ from fhirflat.util import (
 from fhir.resources.quantity import Quantity
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.medicationstatement import MedicationStatementAdherence
+from fhir.resources.immunization import ImmunizationProtocolApplied
 
 from fhirflat.resources.extensions import dateTimeExtension, Duration
 from fhirflat import MedicationStatement
@@ -53,6 +54,7 @@ def test_group_keys():
         ("MedicationStatementAdherence", MedicationStatementAdherence),
         ("dateTimeExtension", dateTimeExtension),
         ("duration", Duration),
+        ("ImmunizationProtocolApplied", ImmunizationProtocolApplied),
     ],
 )
 def test_get_fhirtype(input, expected):
