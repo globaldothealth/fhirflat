@@ -5,6 +5,7 @@ FHIRflat.
 
 import argparse
 import hashlib
+import logging
 import os
 import shutil
 import timeit
@@ -23,6 +24,8 @@ from pyarrow.lib import ArrowTypeError
 
 import fhirflat
 from fhirflat.util import get_local_resource, group_keys
+
+logger = logging.getLogger(__name__)
 
 # 1:1 (single row, single resource) mapping: Patient, Encounter
 # 1:M (single row, multiple resources) mapping: Observation, Condition, Procedure, ...
@@ -260,11 +263,14 @@ def create_dict_long(
         except KeyError:
             # No mapping found for this column and response despite presence
             # in mapping file
-            warnings.warn(
-                f"No mapping for column {column} response {response}",
-                UserWarning,
-                stacklevel=1,
-            )
+            if response == 0.0:
+                logger.info(f"No mapping for column {column} response {response}")
+            else:
+                warnings.warn(
+                    f"No mapping for column {column} response {response}",
+                    UserWarning,
+                    stacklevel=1,
+                )
             return None
     return None
 
@@ -369,6 +375,12 @@ def create_dictionary(
     # Set multi-index for easier access
     map_df.set_index(["raw_variable", "raw_response"], inplace=True)
     map_df.sort_index(inplace=True)  # for performance improvements
+
+    if not map_df.index.is_unique:
+        raise ValueError(
+            f"Mapping file for the {resource} resource has duplicate entries "
+            f"{map_df.index[map_df.index.duplicated()]}"
+        )
 
     # Generate the flat_like dictionary
     if one_to_one:
