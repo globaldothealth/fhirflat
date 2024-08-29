@@ -5,6 +5,7 @@ FHIRflat.
 
 import argparse
 import hashlib
+import logging
 import os
 import shutil
 import timeit
@@ -24,6 +25,8 @@ from pyarrow.lib import ArrowTypeError
 
 import fhirflat
 from fhirflat.util import get_local_resource, group_keys
+
+logger = logging.getLogger(__name__)
 
 # 1:1 (single row, single resource) mapping: Patient, Encounter
 # 1:M (single row, multiple resources) mapping: Observation, Condition, Procedure, ...
@@ -95,12 +98,12 @@ def find_field_value(
     return return_val
 
 
-def format_dates(date_str: str, date_format: str, timezone: str) -> str:
+def format_dates(date_str: str | float, date_format: str, timezone: str) -> str:
     """
     Converts dates into ISO8601 format with timezone information.
     """
 
-    if date_str is None:
+    if date_str is None or date_str is np.nan:
         return date_str
 
     new_tz = ZoneInfo(timezone)
@@ -124,7 +127,7 @@ def format_dates(date_str: str, date_format: str, timezone: str) -> str:
                 f"Date {date_str} could not be converted using date format"
                 f" {date_format}",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
             return date_str
 
@@ -167,7 +170,7 @@ def create_dict_wide(
                     warnings.warn(
                         f"No mapping for column {column} response {response}",
                         UserWarning,
-                        stacklevel=2,
+                        stacklevel=1,
                     )
                     continue
             else:
@@ -261,11 +264,15 @@ def create_dict_long(
         except KeyError:
             # No mapping found for this column and response despite presence
             # in mapping file
-            warnings.warn(
-                f"No mapping for column {column} response {response}",
-                UserWarning,
-                stacklevel=2,
-            )
+            if response == 0.0:
+                # mostly this is ignoring unfilled responses
+                logger.info(f"No mapping for column {column} response {response}")
+            else:
+                warnings.warn(
+                    f"No mapping for column {column} response {response}",
+                    UserWarning,
+                    stacklevel=1,
+                )
             return None
     return None
 
@@ -329,7 +336,11 @@ def create_dictionary(
                 # If the column contains a single non-nan value, return it
                 non_nan_values = x.dropna()
                 if non_nan_values.nunique() == 1:
-                    return non_nan_values
+                    return (
+                        non_nan_values
+                        if len(non_nan_values) == 1
+                        else non_nan_values.unique()[0]
+                    )
                 elif non_nan_values.empty:
                     return np.nan
                 else:
@@ -337,6 +348,8 @@ def create_dictionary(
             else:
                 if len(x) == 1:
                     return x
+                elif x.nunique() == 1:
+                    return x.unique()[0]
                 else:
                     raise ValueError("Multiple values found in one-to-one mapping")
 
@@ -364,6 +377,13 @@ def create_dictionary(
 
     # Set multi-index for easier access
     map_df.set_index(["raw_variable", "raw_response"], inplace=True)
+    map_df.sort_index(inplace=True)  # for performance improvements
+
+    if not map_df.index.is_unique:
+        raise ValueError(
+            f"Mapping file for the {resource} resource has duplicate entries "
+            f"{map_df.index[map_df.index.duplicated()]}"
+        )
 
     # Generate the flat_like dictionary
     if one_to_one:
@@ -522,7 +542,7 @@ def convert_data_to_flat(
                 date_format=date_format,
                 timezone=timezone,
             )
-            if df is None:
+            if df is None or df.empty:
                 return None
         else:
             raise ValueError(f"Unknown mapping type {t}")
