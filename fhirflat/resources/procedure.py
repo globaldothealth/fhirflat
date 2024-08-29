@@ -16,11 +16,20 @@ from .base import FHIRFlatBase
 from .extension_types import (
     dateTimeExtensionType,
     durationType,
+    presenceAbsenceType,
+    prespecifiedQueryType,
     relativePeriodType,
     timingPhaseDetailType,
     timingPhaseType,
 )
-from .extensions import Duration, relativePeriod, timingPhase, timingPhaseDetail
+from .extensions import (
+    Duration,
+    presenceAbsence,
+    prespecifiedQuery,
+    relativePeriod,
+    timingPhase,
+    timingPhaseDetail,
+)
 
 JsonString: TypeAlias = str
 
@@ -32,6 +41,8 @@ class Procedure(_Procedure, FHIRFlatBase):
             timingPhaseType,
             timingPhaseDetailType,
             relativePeriodType,
+            presenceAbsenceType,
+            prespecifiedQueryType,
             fhirtypes.ExtensionType,
         ]
     ] = Field(
@@ -86,16 +97,18 @@ class Procedure(_Procedure, FHIRFlatBase):
         tim_phase_count = sum(isinstance(item, timingPhase) for item in extensions)
         rel_phase_count = sum(isinstance(item, relativePeriod) for item in extensions)
         detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
+        pa_count = sum(isinstance(item, presenceAbsence) for item in extensions)
+        pq_count = sum(isinstance(item, prespecifiedQuery) for item in extensions)
 
         if (
             duration_count > 1
             or tim_phase_count > 1
             or rel_phase_count > 1
             or detail_count > 1
+            or pa_count > 1
+            or pq_count > 1
         ):
-            raise ValueError(
-                "duration, timingPhase, timingPhaseDetail and relativePeriod can only appear once."  # noqa E501
-            )
+            raise ValueError("Each extension can only appear once.")
 
         if tim_phase_count > 0 and detail_count > 0:
             raise ValueError(

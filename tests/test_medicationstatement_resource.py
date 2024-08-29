@@ -3,6 +3,7 @@ from pandas.testing import assert_frame_equal
 import os
 from fhirflat.resources.medicationstatement import MedicationStatement
 import datetime
+import pytest
 
 MEDS_DICT_INPUT = {
     "resourceType": "MedicationStatement",
@@ -193,3 +194,24 @@ def test_medicationstatement_from_flat():
     flat_meds = MedicationStatement.from_flat("tests/data/medicationstat_flat.parquet")
 
     assert meds == flat_meds
+
+
+@pytest.mark.usefixtures("raises_phase_duplicate_error")
+def test_extension_raises_errors(raises_phase_duplicate_error):
+    fhir_input = {
+        "resourceType": "MedicationStatement",
+        "status": "recorded",
+        "medication": {
+            "concept": {
+                "coding": [
+                    {
+                        "system": "http://snomed.info/sct",
+                        "code": "27658006",
+                        "display": "Amoxicillin (product)",
+                    }
+                ]
+            }
+        },
+        "subject": {"reference": "Patient/pat1"},
+    }
+    raises_phase_duplicate_error(fhir_input, MedicationStatement)

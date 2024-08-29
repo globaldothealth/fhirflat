@@ -79,6 +79,7 @@ class DiagnosticReport(_DiagnosticReport, FHIRFlatBase):
             {
                 "basedOn",
                 "subject",
+                "encounter",
                 "performer",
                 "resultsInterpreter",
                 "specimen",

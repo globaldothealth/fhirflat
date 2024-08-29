@@ -14,8 +14,13 @@ from fhir.resources.encounter import (
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
-from .extension_types import relativePeriodType, timingPhaseDetailType, timingPhaseType
-from .extensions import relativePeriod, timingPhase, timingPhaseDetail
+from .extension_types import (
+    durationType,
+    relativePeriodType,
+    timingPhaseDetailType,
+    timingPhaseType,
+)
+from .extensions import Duration, relativePeriod, timingPhase, timingPhaseDetail
 
 JsonString: TypeAlias = str
 
@@ -26,6 +31,7 @@ class Encounter(_Encounter, FHIRFlatBase):
             relativePeriodType,
             timingPhaseType,
             timingPhaseDetailType,
+            durationType,
             fhirtypes.ExtensionType,
         ]
     ] = Field(
@@ -71,11 +77,10 @@ class Encounter(_Encounter, FHIRFlatBase):
         rel_phase_count = sum(isinstance(item, relativePeriod) for item in extensions)
         timing_count = sum(isinstance(item, timingPhase) for item in extensions)
         detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
+        dur_count = sum(isinstance(item, Duration) for item in extensions)
 
-        if rel_phase_count > 1 or timing_count > 1 or detail_count > 1:
-            raise ValueError(
-                "relativePeriod, timingPhase and timingPhaseDetail can only appear once."  # noqa E501
-            )
+        if rel_phase_count > 1 or timing_count > 1 or detail_count > 1 or dur_count > 1:
+            raise ValueError("Each extension can only appear once.")
 
         if timing_count > 0 and detail_count > 0:
             raise ValueError(

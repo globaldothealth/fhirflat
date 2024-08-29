@@ -15,17 +15,30 @@ from pydantic.v1 import Field, validator
 from .base import FHIRFlatBase
 from .extension_types import (
     dateTimeExtensionType,
+    presenceAbsenceType,
+    prespecifiedQueryType,
     timingPhaseDetailType,
     timingPhaseType,
 )
-from .extensions import timingPhase, timingPhaseDetail
+from .extensions import (
+    presenceAbsence,
+    prespecifiedQuery,
+    timingPhase,
+    timingPhaseDetail,
+)
 
 JsonString: TypeAlias = str
 
 
 class Immunization(_Immunization, FHIRFlatBase):
     extension: list[
-        Union[timingPhaseType, timingPhaseDetailType, fhirtypes.ExtensionType]
+        Union[
+            presenceAbsenceType,
+            prespecifiedQueryType,
+            timingPhaseType,
+            timingPhaseDetailType,
+            fhirtypes.ExtensionType,
+        ]
     ] = Field(
         None,
         alias="extension",
@@ -77,9 +90,11 @@ class Immunization(_Immunization, FHIRFlatBase):
     def validate_extension_contents(cls, extensions):
         timing_count = sum(isinstance(item, timingPhase) for item in extensions)
         detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
+        pa_count = sum(isinstance(item, presenceAbsence) for item in extensions)
+        pq_count = sum(isinstance(item, prespecifiedQuery) for item in extensions)
 
-        if timing_count > 1 or detail_count > 1:
-            raise ValueError("timingPhase and timingPhaseDetail can only appear once.")
+        if timing_count > 1 or detail_count > 1 or pa_count > 1 or pq_count > 1:
+            raise ValueError("Each extension can only appear once.")
 
         if timing_count > 0 and detail_count > 0:
             raise ValueError(
