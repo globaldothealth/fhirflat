@@ -86,6 +86,11 @@ class MedicationAdministration(_MedicationAdministration, FHIRFlatBase):
         ):
             raise ValueError("Each extension can can only appear once.")
 
+        if tp_count > 0 and tpd_count > 0:
+            raise ValueError(
+                "timingPhase and timingPhaseDetail cannot appear together."
+            )
+
         return extensions
 
     backbone_elements: ClassVar[dict] = {

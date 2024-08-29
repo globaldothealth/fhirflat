@@ -3,6 +3,7 @@ from pandas.testing import assert_frame_equal
 import os
 from fhirflat.resources.medicationadministration import MedicationAdministration
 import datetime
+import pytest
 
 MEDS_DICT_INPUT = {
     "resourceType": "MedicationAdministration",
@@ -171,3 +172,23 @@ def test_medicationadministration_from_flat():
     )
 
     assert meds == flat_meds
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "resourceType": "MedicationAdministration",
+        "status": "completed",
+        "medication": {"reference": {"reference": "#med0306"}},
+        "subject": {"reference": "Patient/pat1"},
+        "occurencePeriod": {
+            "start": "2015-01-15T04:30:00+01:00",
+            "end": "2015-01-15T14:30:00+01:00",
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, MedicationAdministration)
+    raises_phase_duplicate_error(fhir_input, MedicationAdministration)

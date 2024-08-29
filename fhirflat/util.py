@@ -17,7 +17,7 @@ from fhirflat.resources import extensions
 from fhirflat.resources.extensions import _ISARICExtension
 
 if TYPE_CHECKING:
-    from .resources.base import FHIRFlatBase
+    from .resources.base import FHIRFlatBase  # pragma: no cover
 
 
 def group_keys(data_keys: list[str] | KeysView) -> dict[str, list[str]]:
