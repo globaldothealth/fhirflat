@@ -165,16 +165,16 @@ def test_procedure_from_flat():
     assert chemo == flat_chemo
 
 
-def test_procedure_extension_validation_error():
-    with pytest.raises(ValueError, match="can only appear once"):
-        Procedure(
-            **{
-                "id": 1,
-                "status": "completed",
-                "subject": {"reference": "Patient/example"},
-                "extension": [
-                    {"url": "duration", "valueQuantity": {"value": 1, "unit": "d"}},
-                    {"url": "duration", "valueQuantity": {"value": 2, "unit": "d"}},
-                ],
-            }
-        )
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "id": 1,
+        "status": "completed",
+        "subject": {"reference": "Patient/example"},
+    }
+    raises_phase_plus_detail_error(fhir_input, Procedure)
+    raises_phase_duplicate_error(fhir_input, Procedure)

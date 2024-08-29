@@ -14,8 +14,12 @@ from fhir.resources.observation import (
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
-from .extension_types import dateTimeExtensionType, timingPhaseType
-from .extensions import timingPhase
+from .extension_types import (
+    dateTimeExtensionType,
+    timingPhaseDetailType,
+    timingPhaseType,
+)
+from .extensions import timingPhase, timingPhaseDetail
 
 JsonString: TypeAlias = str
 
@@ -33,7 +37,9 @@ class ObservationComponent(_ObservationComponent):
 
 
 class Observation(_Observation, FHIRFlatBase):
-    extension: list[Union[timingPhaseType, fhirtypes.ExtensionType]] = Field(
+    extension: list[
+        Union[timingPhaseType, timingPhaseDetailType, fhirtypes.ExtensionType]
+    ] = Field(
         None,
         alias="extension",
         title="List of `Extension` items (represented as `dict` in JSON)",
@@ -94,10 +100,16 @@ class Observation(_Observation, FHIRFlatBase):
 
     @validator("extension")
     def validate_extension_contents(cls, extensions):
-        phase_count = sum(isinstance(item, timingPhase) for item in extensions)
+        timing_count = sum(isinstance(item, timingPhase) for item in extensions)
+        detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
 
-        if phase_count > 1:
-            raise ValueError("timingPhase can only appear once.")
+        if timing_count > 1 or detail_count > 1:
+            raise ValueError("timingPhase and timingPhaseDetail can only appear once.")
+
+        if timing_count > 0 and detail_count > 0:
+            raise ValueError(
+                "timingPhase and timingPhaseDetail cannot appear together."
+            )
 
         return extensions
 

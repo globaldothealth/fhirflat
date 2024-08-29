@@ -3,6 +3,7 @@ from pandas.testing import assert_frame_equal
 import os
 from fhirflat.resources.diagnosticreport import DiagnosticReport
 import datetime
+import pytest
 
 
 DICT_INPUT = {
@@ -175,3 +176,27 @@ def test_observation_from_flat():
     flat_report = DiagnosticReport.from_flat("tests/data/diagnosticreport_flat.parquet")
 
     assert report == flat_report
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "resourceType": "DiagnosticReport",
+        "id": "f001",
+        "status": "final",
+        "code": {
+            "coding": [
+                {
+                    "system": "http://loinc.org",
+                    "code": "58410-2",
+                    "display": "Complete blood count (hemogram) panel - Blood by Automated count",  # noqa: E501
+                }
+            ]
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, DiagnosticReport)
+    raises_phase_duplicate_error(fhir_input, DiagnosticReport)

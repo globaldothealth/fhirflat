@@ -7,7 +7,7 @@ Extensions to the base `FHIR resources`_ package that are ISARIC specific.
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any, ClassVar, Union
 
 from fhir.resources import fhirtypes
 from fhir.resources.datatype import DataType as _DataType
@@ -18,10 +18,33 @@ from pydantic.v1 import Field, root_validator, validator
 
 from . import extension_types as et
 
+# --------- base local extension type ---------------
+
+
+class _ISARICExtension(_DataType):
+    """
+    Base class for all ISARIC extensions.
+    """
+
+    resource_type: str = Field(default="ISARICExtension", const=True)
+
+    url: str = Field(None, alias="url", title="URI of the extension", const=True)
+
+    nested_extension: ClassVar[bool] = False
+
+    @classmethod
+    def elements_sequence(cls):
+        """returning all elements names from
+        ``Extension`` according specification,
+        with preserving original sequence order.
+        """
+        return ["id", "extension", "url"]
+
+
 # --------- extensions ------------------------------
 
 
-class timingPhase(_DataType):
+class timingPhase(_ISARICExtension):
     """
     An ISARIC extension collecting data on the phase of admission an event occurred.
     This is typically one of:
@@ -62,7 +85,160 @@ class timingPhase(_DataType):
         ]
 
 
-class relativeDay(_DataType):
+class timingDetail(_ISARICExtension):
+    """
+    An ISARIC extension collecting more detail on the timingPhase. This is typically
+    means providing a range of days relative to the admission date (valueRange), noting
+    that this covers a period since the last encounter (valueCodeableConcept), or note
+    that this is for the last 12 months (valueString).
+
+    To denote a range **before** the timingPhase, use a negative number.
+    e.g. -1 to -3 would denote 1 to 3 days before the timingPhase.
+    """
+
+    resource_type: str = Field(default="timingDetail", const=True)
+
+    url: str = Field("timingDetail", const=True, alias="url")
+
+    valueRange: fhirtypes.RangeType = Field(
+        None,
+        alias="valueRange",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    valueCodeableConcept: fhirtypes.CodeableConceptType = Field(
+        None,
+        alias="valueCodeableConcept",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    valueString: fhirtypes.String = Field(
+        None,
+        alias="valueString",
+        title="Value of extension",
+        description=(
+            "Value of extension - must be one of a constrained set of the data "
+            "types (see [Extensibility](extensibility.html) for a list)."
+        ),
+        # if property is element of this resource.
+        element_property=True,
+        # Choice of Data Types. i.e value[x]
+        one_of_many="value",
+        one_of_many_required=True,
+    )
+
+    @classmethod
+    def elements_sequence(cls):
+        """returning all elements names from
+        ``Extension`` according specification,
+        with preserving original sequence order.
+        """
+        return [
+            "id",
+            "extension",
+            "url",
+            "valueRange",
+            "valueCodeableConcept",
+            "valueString",
+        ]
+
+    @root_validator(pre=True, allow_reuse=True)
+    def validate_one_of_many_1136(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """https://www.hl7.org/fhir/formats.html#choice
+        A few elements have a choice of more than one data type for their content.
+        All such elements have a name that takes the form nnn[x].
+        The "nnn" part of the name is constant, and the "[x]" is replaced with
+        the title-cased name of the type that is actually used.
+        The table view shows each of these names explicitly.
+
+        Elements that have a choice of data type cannot repeat - they must have a
+        maximum cardinality of 1. When constructing an instance of an element with a
+        choice of types, the authoring system must create a single element with a
+        data type chosen from among the list of permitted data types.
+        """
+        one_of_many_fields = {
+            "value": [
+                "valueRange",
+                "valueCodeableConcept",
+                "valueString",
+            ]
+        }
+        for prefix, fields in one_of_many_fields.items():
+            assert cls.__fields__[fields[0]].field_info.extra["one_of_many"] == prefix
+            required = (
+                cls.__fields__[fields[0]].field_info.extra["one_of_many_required"]
+                is True
+            )
+            found = False
+            for field in fields:
+                if field in values and values[field] is not None:
+                    if found is True:
+                        raise ValueError(
+                            "Any of one field value is expected from "
+                            f"this list {fields}, but got multiple!"
+                        )
+                    else:
+                        found = True
+            if required is True and found is False:
+                raise ValueError(f"Expect any of field value from this list {fields}.")
+
+        return values
+
+
+class timingPhaseDetail(_ISARICExtension):
+    """
+    An ISARIC extension collecting data on the phase of admission an event occurred.
+    This combines the `timingPhase`, `timingDetail` and `timingPoint` to bundle the
+    responses relative to eachother.
+    """
+
+    resource_type: str = Field(default="timingPhaseDetail", const=True)
+
+    url: str = Field("timingPhaseDetail", const=True, alias="url")
+
+    nested_extension: ClassVar[bool] = True
+
+    extension: list[Union[et.timingPhaseType, et.timingDetailType]] = Field(
+        None,
+        alias="extension",
+        title="List of `Extension` items (represented as `dict` in JSON)",
+        description="Additional content defined by implementations",
+        # if property is element of this resource.
+        element_property=True,
+        # this trys to match the type of the object to each of the union types
+        union_mode="smart",
+    )
+
+    @validator("extension")
+    def validate_extension_contents(cls, extensions):
+        time_count = sum(isinstance(item, timingPhase) for item in extensions)
+        detail_count = sum(isinstance(item, timingDetail) for item in extensions)
+
+        if time_count > 1 or detail_count > 1:
+            raise ValueError("timingPhase and timingDetail can only appear once.")
+
+        return extensions
+
+
+class relativeDay(_ISARICExtension):
     """
     An ISARIC extension recording the day an event occurred relative to the admission
     date. For a resources such as Encounter or Procedure, use relativePeriod to record
@@ -100,7 +276,7 @@ class relativeDay(_DataType):
         ]
 
 
-class relativeStart(_DataType):
+class relativeStart(_ISARICExtension):
     """
     An ISARIC extension for use inside the complex `relativePeriod` extension.
     """
@@ -136,7 +312,7 @@ class relativeStart(_DataType):
         ]
 
 
-class relativeEnd(_DataType):
+class relativeEnd(_ISARICExtension):
     """
     An ISARIC extension for use inside the complex `relativePeriod` extension.
     """
@@ -172,7 +348,7 @@ class relativeEnd(_DataType):
         ]
 
 
-class relativePeriod(_DataType):
+class relativePeriod(_ISARICExtension):
     """
     An ISARIC extension recording the start and end dates an event occurred relative to
     the admission date.
@@ -188,6 +364,8 @@ class relativePeriod(_DataType):
     resource_type: str = Field(default="relativePeriod", const=True)
 
     url: str = Field("relativePeriod", const=True, alias="url")
+
+    nested_extension: ClassVar[bool] = True
 
     extension: list[Union[et.relativeStartType, et.relativeEndType]] = Field(
         None,
@@ -210,20 +388,8 @@ class relativePeriod(_DataType):
 
         return extensions
 
-    @classmethod
-    def elements_sequence(cls):
-        """returning all elements names from
-        ``Extension`` according specification,
-        with preserving original sequence order.
-        """
-        return [
-            "id",
-            "extension",
-            "url",
-        ]
 
-
-class approximateDate(_DataType):
+class approximateDate(_ISARICExtension):
     """
     An ISARIC extension for recording the approximate date (if the true date is unknown)
     or timeframe of an event.
@@ -316,7 +482,7 @@ class approximateDate(_DataType):
         return values
 
 
-class Duration(_DataType):
+class Duration(_ISARICExtension):
     """
     An ISARIC extension for recording the length of an event (e.g. 5 days) where
     duration is not an option in the base FHIR specification.
@@ -353,7 +519,7 @@ class Duration(_DataType):
         ]
 
 
-class Age(_DataType):
+class Age(_ISARICExtension):
     """
     An ISARIC extension collecting data on the age of a patient.
     """
@@ -389,7 +555,7 @@ class Age(_DataType):
         ]
 
 
-class birthSex(_DataType):
+class birthSex(_ISARICExtension):
     """
     An ISARIC extension collecting data on the birth sex of a patient.
     """
@@ -425,7 +591,7 @@ class birthSex(_DataType):
         ]
 
 
-class Race(_DataType):
+class Race(_ISARICExtension):
     """
     An ISARIC extension collecting data on the race of a patient.
     """
@@ -461,7 +627,7 @@ class Race(_DataType):
         ]
 
 
-class presenceAbsence(_DataType):
+class presenceAbsence(_ISARICExtension):
     """
     An ISARIC extension to indicate if a clinical finding is present, absent or unknown.
     """
@@ -497,7 +663,7 @@ class presenceAbsence(_DataType):
         ]
 
 
-class prespecifiedQuery(_DataType):
+class prespecifiedQuery(_ISARICExtension):
     """
     An ISARIC extension to indicate if a finding is the result of a prespecified query.
     """

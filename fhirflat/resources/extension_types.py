@@ -20,6 +20,14 @@ class timingPhaseType(AbstractType):
     __resource_type__ = "timingPhase"
 
 
+class timingDetailType(AbstractType):
+    __resource_type__ = "timingDetail"
+
+
+class timingPhaseDetailType(AbstractType):
+    __resource_type__ = "timingPhaseDetail"
+
+
 class relativeDayType(AbstractType):
     __resource_type__ = "relativeDay"
 

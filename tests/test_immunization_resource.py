@@ -17,16 +17,25 @@ IMMUNIZATION_DICT_INPUT = {
     "status": "completed",
     "extension": [
         {
-            "url": "timingPhase",
-            "valueCodeableConcept": {
-                "coding": [
-                    {
-                        "system": "http://snomed.info/sct",
-                        "code": 278307001,
-                        "display": "on admission",
-                    }
-                ]
-            },
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": 278307001,
+                                "display": "on admission",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "url": "timingDetail",
+                    "valueString": "ever",
+                },
+            ],
         },
     ],
     "vaccineCode": {
@@ -104,8 +113,9 @@ IMMUNIZATION_DICT_INPUT = {
 
 IMMUNIZATION_FLAT = {
     "resourceType": "Immunization",
-    "extension.timingPhase.code": "http://snomed.info/sct|278307001",
-    "extension.timingPhase.text": "on admission",
+    "extension.timingPhaseDetail.timingPhase.code": "http://snomed.info/sct|278307001",
+    "extension.timingPhaseDetail.timingPhase.text": "on admission",
+    "extension.timingPhaseDetail.timingDetail": "ever",
     "occurrenceDateTime": datetime.date(2021, 9, 12),
     "_occurrenceDateTime.relativeDay": 3.0,
     "_occurrenceDateTime.approximateDate": "month 3",
@@ -133,16 +143,25 @@ IMMUNIZATION_DICT_OUT = {
     "status": "completed",
     "extension": [
         {
-            "url": "timingPhase",
-            "valueCodeableConcept": {
-                "coding": [
-                    {
-                        "system": "http://snomed.info/sct",
-                        "code": 278307001,
-                        "display": "on admission",
-                    }
-                ]
-            },
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": 278307001,
+                                "display": "on admission",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "url": "timingDetail",
+                    "valueString": "ever",
+                },
+            ],
         },
     ],
     "vaccineCode": {
@@ -219,48 +238,26 @@ def test_immunization_from_flat():
     assert vacc == flat_vacc
 
 
-def test_immunization_extension_validation_error():
-    with pytest.raises(ValueError, match="timingPhase can only appear once."):
-        Immunization(
-            **{
-                "id": 2,
-                "status": "in-progress",
-                "extension": [
-                    {
-                        "url": "timingPhase",
-                        "valueCodeableConcept": {
-                            "coding": [
-                                {
-                                    "system": "http://snomed.info/sct",
-                                    "code": 278307001,
-                                    "display": "on admission",
-                                }
-                            ]
-                        },
-                    },
-                    {
-                        "url": "timingPhase",
-                        "valueCodeableConcept": {
-                            "coding": [
-                                {
-                                    "system": "http://snomed.info/sct",
-                                    "code": 278307005,
-                                    "display": "during admission",
-                                }
-                            ]
-                        },
-                    },
-                ],
-                "patient": {"reference": "Patient/example"},
-                "occurrenceDateTime": "2021-09-12T00:00:00",
-                "vaccineCode": {
-                    "coding": [
-                        {
-                            "system": "http://hl7.org/fhir/sid/cvx",
-                            "code": "175",
-                            "display": "Rabies - IM Diploid cell culture",
-                        }
-                    ],
-                },
-            }
-        )
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "id": 2,
+        "status": "in-progress",
+        "patient": {"reference": "Patient/example"},
+        "occurrenceDateTime": "2021-09-12T00:00:00",
+        "vaccineCode": {
+            "coding": [
+                {
+                    "system": "http://hl7.org/fhir/sid/cvx",
+                    "code": "175",
+                    "display": "Rabies - IM Diploid cell culture",
+                }
+            ],
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, Immunization)
+    raises_phase_duplicate_error(fhir_input, Immunization)

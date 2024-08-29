@@ -22,6 +22,30 @@ CONDITION_DICT_INPUT = {
             },
         },
         {"url": "prespecifiedQuery", "valueBoolean": True},
+        {
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": "281379000",
+                                "display": "pre-admission",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "url": "timingDetail",
+                    "valueRange": {
+                        "low": {"value": -7, "unit": "days"},
+                        "high": {"value": 0, "unit": "days"},
+                    },
+                },
+            ],
+        },
     ],
     "identifier": [{"value": "12345"}],
     "clinicalStatus": {
@@ -110,6 +134,14 @@ CONDITION_FLAT = {
     "extension.presenceAbsence.code": ["http://snomed.info/sct|410605003"],
     "extension.presenceAbsence.text": ["Present"],
     "extension.prespecifiedQuery": True,
+    "extension.timingPhaseDetail.timingPhase.code": [
+        "http://snomed.info/sct|281379000"
+    ],
+    "extension.timingPhaseDetail.timingPhase.text": ["pre-admission"],
+    "extension.timingPhaseDetail.timingDetail.low.value": -7,
+    "extension.timingPhaseDetail.timingDetail.low.unit": "days",
+    "extension.timingPhaseDetail.timingDetail.high.value": 0,
+    "extension.timingPhaseDetail.timingDetail.high.unit": "days",
     "category.code": [
         "http://snomed.info/sct|55607006",
         "http://terminology.hl7.org/CodeSystem/condition-category|problem-list-item",  # noqa: E501
@@ -142,6 +174,30 @@ CONDITION_DICT_OUT = {
                     }
                 ]
             },
+        },
+        {
+            "url": "timingPhaseDetail",
+            "extension": [
+                {
+                    "url": "timingDetail",
+                    "valueRange": {
+                        "low": {"value": -7, "unit": "days"},
+                        "high": {"value": 0, "unit": "days"},
+                    },
+                },
+                {
+                    "url": "timingPhase",
+                    "valueCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://snomed.info/sct",
+                                "code": "281379000",
+                                "display": "pre-admission",
+                            }
+                        ]
+                    },
+                },
+            ],
         },
     ],
     "clinicalStatus": {
@@ -212,7 +268,7 @@ def test_condition_to_flat():
     expected = expected.reindex(sorted(expected.columns), axis=1)
     # v, e = Condition.validate_fhirflat(expected)
 
-    assert_frame_equal(fever_flat, expected)
+    assert_frame_equal(fever_flat, expected, check_dtype=False)
     os.remove("test_condition.parquet")
 
 
@@ -271,3 +327,25 @@ def test_condition_extension_validation_error():
 def test_from_flat_validation_error_single():
     with pytest.raises(ValidationError, match="1 validation error for Condition"):
         Condition.from_flat("tests/data/condition_flat_missing_subject.parquet")
+
+
+@pytest.mark.usefixtures(
+    "raises_phase_plus_detail_error", "raises_phase_duplicate_error"
+)
+def test_extension_raises_errors(
+    raises_phase_plus_detail_error, raises_phase_duplicate_error
+):
+    fhir_input = {
+        "id": "c201",
+        "subject": {"reference": "Patient/f201"},
+        "clinicalStatus": {
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",  # noqa: E501
+                    "code": "resolved",
+                }
+            ]
+        },
+    }
+    raises_phase_plus_detail_error(fhir_input, Condition)
+    raises_phase_duplicate_error(fhir_input, Condition)

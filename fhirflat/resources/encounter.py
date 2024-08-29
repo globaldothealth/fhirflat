@@ -14,15 +14,20 @@ from fhir.resources.encounter import (
 from pydantic.v1 import Field, validator
 
 from .base import FHIRFlatBase
-from .extension_types import relativePeriodType, timingPhaseType
-from .extensions import relativePeriod, timingPhase
+from .extension_types import relativePeriodType, timingPhaseDetailType, timingPhaseType
+from .extensions import relativePeriod, timingPhase, timingPhaseDetail
 
 JsonString: TypeAlias = str
 
 
 class Encounter(_Encounter, FHIRFlatBase):
     extension: list[
-        Union[relativePeriodType, timingPhaseType, fhirtypes.ExtensionType]
+        Union[
+            relativePeriodType,
+            timingPhaseType,
+            timingPhaseDetailType,
+            fhirtypes.ExtensionType,
+        ]
     ] = Field(
         None,
         alias="extension",
@@ -64,10 +69,18 @@ class Encounter(_Encounter, FHIRFlatBase):
     @validator("extension")
     def validate_extension_contents(cls, extensions):
         rel_phase_count = sum(isinstance(item, relativePeriod) for item in extensions)
-        tim_phase_count = sum(isinstance(item, timingPhase) for item in extensions)
+        timing_count = sum(isinstance(item, timingPhase) for item in extensions)
+        detail_count = sum(isinstance(item, timingPhaseDetail) for item in extensions)
 
-        if rel_phase_count > 1 or tim_phase_count > 1:
-            raise ValueError("relativePeriod and timingPhase can only appear once.")
+        if rel_phase_count > 1 or timing_count > 1 or detail_count > 1:
+            raise ValueError(
+                "relativePeriod, timingPhase and timingPhaseDetail can only appear once."  # noqa E501
+            )
+
+        if timing_count > 0 and detail_count > 0:
+            raise ValueError(
+                "timingPhase and timingPhaseDetail cannot appear together."
+            )
 
         return extensions
 
