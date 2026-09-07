@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, TypeAlias, Union
+from typing import ClassVar, TypeAlias
 
 from fhir.resources import fhirtypes
 from fhir.resources.procedure import (
@@ -27,23 +27,19 @@ JsonString: TypeAlias = str
 
 class Procedure(_Procedure, FHIRFlatBase):
     extension: list[
-        Union[
-            durationType,
-            timingPhaseType,
-            timingPhaseDetailType,
-            relativePeriodType,
-            fhirtypes.ExtensionType,
-        ]
+        durationType
+        | timingPhaseType
+        | timingPhaseDetailType
+        | relativePeriodType
+        | fhirtypes.ExtensionType
     ] = Field(
         None,
         alias="extension",
         title="Additional content defined by implementations",
-        description=(
-            """
+        description=("""
             Contains the G.H 'timingPhase', 'timingPhaseDetail', 'relativePeriod' and
              'duration' extensions, and allows extensions from other implementations to
-             be included."""
-        ),
+             be included."""),
         # if property is element of this resource.
         element_property=True,
         union_mode="smart",

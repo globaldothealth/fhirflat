@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, TypeAlias, Union
+from typing import ClassVar, TypeAlias
 
 from fhir.resources import fhirtypes
 from fhir.resources.encounter import Encounter as _Encounter
@@ -22,22 +22,18 @@ JsonString: TypeAlias = str
 
 class Encounter(_Encounter, FHIRFlatBase):
     extension: list[
-        Union[
-            relativePeriodType,
-            timingPhaseType,
-            timingPhaseDetailType,
-            fhirtypes.ExtensionType,
-        ]
+        relativePeriodType
+        | timingPhaseType
+        | timingPhaseDetailType
+        | fhirtypes.ExtensionType
     ] = Field(
         None,
         alias="extension",
         title="List of `Extension` items (represented as `dict` in JSON)",
-        description=(
-            """
+        description=("""
             Contains the Global.health 'eventTiming' and 'relativePeriod' extensions,
             and allows extensions from other implementations to be included.
-            """
-        ),
+            """),
         # if property is element of this resource.
         element_property=True,
         # this trys to match the type of the object to each of the union types
