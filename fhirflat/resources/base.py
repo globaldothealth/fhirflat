@@ -89,7 +89,7 @@ class FHIRFlatBase(_DomainResource):
     @classmethod
     def validate_fhirflat(
         cls, df: pd.DataFrame, return_frames: bool = False
-    ) -> tuple[FHIRFlatBase | pd.DataFrame, None | pd.DataFrame]:
+    ) -> tuple[FHIRFlatBase | pd.DataFrame, pd.DataFrame | None]:
         """
         Takes a FHIRflat dataframe and validates the data against the FHIR
         schema. Returns a dataframe of valid resources and a dataframe of the
@@ -355,7 +355,7 @@ class FHIRFlatBase(_DomainResource):
 
         df.to_parquet(output_name)
 
-    def to_flat(self, filename: str | None = None) -> None | pd.Series:
+    def to_flat(self, filename: str | None = None) -> pd.Series | None:
         """
         Generates a FHIRflat parquet file from the resource, or returns a Series
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, TypeAlias, Union
+from typing import ClassVar, TypeAlias
 
 from fhir.resources import fhirtypes
 from fhir.resources.condition import Condition as _Condition
@@ -30,22 +30,18 @@ JsonString: TypeAlias = str
 
 class Condition(_Condition, FHIRFlatBase):
     extension: list[
-        Union[
-            presenceAbsenceType,
-            prespecifiedQueryType,
-            timingPhaseType,
-            timingPhaseDetailType,
-            fhirtypes.ExtensionType,
-        ]
+        presenceAbsenceType
+        | prespecifiedQueryType
+        | timingPhaseType
+        | timingPhaseDetailType
+        | fhirtypes.ExtensionType
     ] = Field(
         None,
         alias="extension",
         title="Additional content defined by implementations",
-        description=(
-            """
+        description=("""
             Contains the G.H 'age' and 'birthSex' extensions,
-            and allows extensions from other implementations to be included."""
-        ),
+            and allows extensions from other implementations to be included."""),
         # if property is element of this resource.
         element_property=True,
         union_mode="smart",

@@ -6,14 +6,12 @@ from .ingest import validate_cli as validate
 
 def main():
     if len(sys.argv) < 2:
-        print(
-            """fhirflat: specify subcommand to run
+        print("""fhirflat: specify subcommand to run
 
                 Available subcommands:
                 transform - Convert raw data into FHIRflat files
                 validate - Validate FHIRflat files against FHIR schemas
-            """
-        )
+            """)
         sys.exit(1)
     subcommand = sys.argv[1]
     if subcommand not in ["transform", "validate"]:
