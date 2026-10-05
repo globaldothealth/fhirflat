@@ -5,7 +5,6 @@ from fhirflat.resources.diagnosticreport import DiagnosticReport
 import datetime
 import pytest
 
-
 DICT_INPUT = {
     "resourceType": "DiagnosticReport",
     "id": "f001",
