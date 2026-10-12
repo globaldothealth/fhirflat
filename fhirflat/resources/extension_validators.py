@@ -37,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import importlib
 import typing
 from pathlib import Path
-from typing import TYPE_CHECKING, Type, Union
+from typing import TYPE_CHECKING
 
 from fhir.resources.core.fhirabstractmodel import FHIRAbstractModel
 from pydantic.v1.class_validators import make_generic_validator
@@ -72,7 +72,7 @@ class Validators:
             "dateTimeExtension": (None, ".extensions"),
         }
 
-    def get_fhir_model_class(self, model_name: str) -> Type[FHIRAbstractModel]:
+    def get_fhir_model_class(self, model_name: str) -> type[FHIRAbstractModel]:
         """
         Returns the extension class by finding the 'datetimeextension' file and
         importing the type class.
@@ -95,11 +95,11 @@ class Validators:
         return v
 
     def fhir_model_validator(
-        self, model_name: str, v: Union[StrBytes, dict, Path, FHIRAbstractModel]
+        self, model_name: str, v: StrBytes | dict | Path | FHIRAbstractModel
     ):
         """ """
-        model_class: Type[BaseModel] | Type[FHIRAbstractModel] = (
-            self.get_fhir_model_class(model_name)
+        model_class: type[BaseModel | FHIRAbstractModel] = self.get_fhir_model_class(
+            model_name
         )
 
         if isinstance(v, (str, bytes)):
@@ -108,7 +108,7 @@ class Validators:
             except ValidationError as exc:
                 if TYPE_CHECKING:
                     model_class = typing.cast(
-                        Type[BaseModel], model_class
+                        type[BaseModel], model_class
                     )  # pragma: no cover
                 errors = exc.errors()
                 if (
@@ -200,61 +200,61 @@ class Validators:
         return v
 
 
-def timingphase_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def timingphase_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("timingPhase", v)
 
 
-def timingdetail_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def timingdetail_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("timingDetail", v)
 
 
-def timingphasedetail_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def timingphasedetail_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("timingPhaseDetail", v)
 
 
-def relativeday_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def relativeday_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("relativeDay", v)
 
 
-def relativestart_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def relativestart_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("relativeStart", v)
 
 
-def relativeend_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def relativeend_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("relativeEnd", v)
 
 
-def relativeperiod_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def relativeperiod_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("relativePeriod", v)
 
 
-def approximatedate_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def approximatedate_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("approximateDate", v)
 
 
-def duration_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def duration_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("Duration", v)
 
 
-def age_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def age_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("Age", v)
 
 
-def birthsex_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def birthsex_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("birthSex", v)
 
 
-def race_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def race_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("Race", v)
 
 
-def presenceabsence_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def presenceabsence_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("presenceAbsence", v)
 
 
-def prespecifiedquery_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def prespecifiedquery_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("prespecifiedQuery", v)
 
 
-def datetimeextension_validator(v: Union[StrBytes, dict, Path, FHIRAbstractModel]):
+def datetimeextension_validator(v: StrBytes | dict | Path | FHIRAbstractModel):
     return Validators().fhir_model_validator("dateTimeExtension", v)
