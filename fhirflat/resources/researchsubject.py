@@ -34,7 +34,7 @@ class ResearchSubject(_ResearchSubject, FHIRFlatBase):
 
         for field in (
             {"study", "subject", "consent"}
-            | {x for x in data.keys() if x.endswith(".reference")}
+            | {x for x in data if x.endswith(".reference")}
         ).intersection(data.keys()):
             data[field] = {"reference": data[field]}
 
