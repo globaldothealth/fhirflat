@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, TypeAlias, Union
+from typing import ClassVar, TypeAlias
 
 from fhir.resources import fhirtypes
 from fhir.resources.patient import (
@@ -21,16 +21,14 @@ JsonString: TypeAlias = str
 
 
 class Patient(_Patient, FHIRFlatBase):
-    extension: list[Union[ageType, birthSexType, raceType, fhirtypes.ExtensionType]] = (
+    extension: list[ageType | birthSexType | raceType | fhirtypes.ExtensionType] = (
         Field(
             None,
             alias="extension",
             title="Additional content defined by implementations",
-            description=(
-                """
+            description=("""
             Contains the G.H 'age' and 'birthSex' extensions,
-            and allows extensions from other implementations to be included."""
-            ),
+            and allows extensions from other implementations to be included."""),
             # if property is element of this resource.
             element_property=True,
             union_mode="smart",
