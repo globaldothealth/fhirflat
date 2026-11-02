@@ -220,9 +220,7 @@ def create_dict_wide(
                             target_length = max(map(len, relevant_result.values()))
                             for k, v in relevant_result.items():
                                 if len(v) < target_length:
-                                    result[k] = relevant_result[k] + [None] * (
-                                        target_length - len(v)
-                                    )
+                                    result[k] = v + [None] * (target_length - len(v))
     return result
 
 
@@ -523,7 +521,7 @@ def convert_data_to_flat(
                 timezone=timezone,
             )
             if df is None:
-                return None
+                return
         else:
             raise ValueError(f"Unknown mapping type {t}")
 
@@ -557,7 +555,7 @@ def convert_data_to_flat(
                     UserWarning,
                     stacklevel=2,
                 )
-                return None
+                return
 
         valid_time = timeit.default_timer()
         print(f"{resource.__name__} validation in " + str(valid_time - dict_time))
