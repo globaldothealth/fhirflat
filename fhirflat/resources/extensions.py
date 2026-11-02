@@ -7,7 +7,7 @@ Extensions to the base `FHIR resources`_ package that are ISARIC specific.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Union
+from typing import Any, ClassVar
 
 from fhir.resources import fhirtypes
 from fhir.resources.datatype import DataType as _DataType
@@ -216,7 +216,7 @@ class timingPhaseDetail(_ISARICExtension):
 
     nested_extension: ClassVar[bool] = True
 
-    extension: list[Union[et.timingPhaseType, et.timingDetailType]] = Field(
+    extension: list[et.timingPhaseType | et.timingDetailType] = Field(
         None,
         alias="extension",
         title="List of `Extension` items (represented as `dict` in JSON)",
@@ -367,7 +367,7 @@ class relativePeriod(_ISARICExtension):
 
     nested_extension: ClassVar[bool] = True
 
-    extension: list[Union[et.relativeStartType, et.relativeEndType]] = Field(
+    extension: list[et.relativeStartType | et.relativeEndType] = Field(
         None,
         alias="extension",
         title="List of `Extension` items (represented as `dict` in JSON)",
@@ -712,7 +712,7 @@ class dateTimeExtension(_FHIRPrimitiveExtension):
     resource_type: str = Field(default="dateTimeExtension", const=True)
 
     extension: list[
-        Union[et.approximateDateType, et.relativeDayType, fhirtypes.ExtensionType]
+        et.approximateDateType | et.relativeDayType | fhirtypes.ExtensionType
     ] = Field(
         None,
         alias="extension",
