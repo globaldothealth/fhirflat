@@ -49,7 +49,7 @@ class MedicationAdministration(_MedicationAdministration, FHIRFlatBase):
                 "request",
                 "eventHistory",
             }
-            | {x for x in data.keys() if x.endswith(".reference")}
+            | {x for x in data if x.endswith(".reference")}
         ).intersection(data.keys()):
             data[field] = {"reference": data[field]}
 

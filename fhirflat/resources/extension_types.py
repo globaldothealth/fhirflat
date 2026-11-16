@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class AbstractType(_AbstractType):
     @classmethod
-    def __get_validators__(cls) -> "CallableGenerator":
+    def __get_validators__(cls) -> CallableGenerator:
         from . import extension_validators as validators
 
         yield getattr(validators, cls.__resource_type__.lower() + "_validator")
