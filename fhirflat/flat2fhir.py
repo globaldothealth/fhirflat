@@ -151,10 +151,10 @@ def create_quantity(df: dict, group: str) -> dict:
 
     quant = {}
 
-    for attribute in df.keys():
+    for attribute in df:
         attr = attribute.split(".")[-1]
         if attr == "code":
-            if group + ".system" in df.keys():
+            if group + ".system" in df:
                 # reading in from ingestion pipeline
                 quant["code"] = df[group + ".code"]
                 quant["system"] = df[group + ".system"]
@@ -309,7 +309,7 @@ def create_extension(k: str, v_dict: dict, klass: _ISARICExtension) -> dict:
 
     if klass.nested_extension:
         classes = find_data_class_options(klass, "extension")
-        short_extensions = [s for s in v_dict.keys() if s.count(".") == 0]
+        short_extensions = [s for s in v_dict if s.count(".") == 0]
         expanded_short_extensions = []
         if short_extensions:
             # these get skipped over in expand_concepts because they don't get grouped
@@ -448,9 +448,7 @@ def expand_concepts(data: dict[str, dict], data_class: type[_DomainResource]) ->
             else:
                 expanded[k] = [expanded[k]]
 
-    dense_cols = {
-        k: k.removesuffix("_dense") for k in data.keys() if k.endswith("_dense")
-    }
+    dense_cols = {k: k.removesuffix("_dense") for k in data if k.endswith("_dense")}
     if dense_cols:
         for old_k, new_k in dense_cols.items():
             data[new_k] = data[old_k]
